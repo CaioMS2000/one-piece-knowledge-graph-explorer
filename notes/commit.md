@@ -310,3 +310,128 @@ git rebase main  # ou git merge main
    git branch -d feature/sua-feature  # local
    git push origin --delete feature/sua-feature  # remoto (opcional)
    ```
+
+---
+
+# Orientações contextualizadas para esse projeto
+### Princípio
+- RFs pequenos/médios → uma branch por RF
+- RFs grandes/complexos → quebrar em sub-features
+
+### Exemplos práticos
+
+**RFs que podem ser uma branch única:**
+- `RF002: Interação com Nós` → `feature/RF002-interacao-nos`
+- `RF004: Busca e Navegação` → `feature/RF004-busca-navegacao`
+- `RF014: Perfil Detalhado` → `feature/RF014-perfil-personagem`
+
+**RFs que devem ser quebrados:**
+
+**RF001 (Renderização do Grafo Base)** — quebrar em:
+```
+feature/RF001-setup-grafo-base        # Setup inicial, estrutura
+feature/RF001-zoom-pan                # Controles de zoom/pan
+feature/RF001-tipos-nos                # Renderização dos diferentes tipos
+feature/RF001-tipos-arestas            # Estilos de conexões
+feature/RF001-layouts                  # Algoritmos de layout
+feature/RF001-performance              # Otimizações de performance
+```
+
+**RF003 (Filtros e Visualizações)** — quebrar em:
+```
+feature/RF003-filtros-basicos         # Filtros simples (afiliação, fruta, etc)
+feature/RF003-modo-timeline           # Modo timeline completo
+feature/RF003-modo-ego-network        # Modo ego network
+feature/RF003-modo-comparacao         # Modo comparação
+feature/RF003-modo-hierarquico        # Modo hierárquico
+feature/RF003-modo-heatmap            # Modo heatmap
+```
+
+**RF006 (Chat Interface)** — quebrar em:
+```
+feature/RF006-chat-ui-base            # Interface básica do chat
+feature/RF006-input-voz               # Speech-to-text
+feature/RF006-historico-persistente   # Persistência de conversas
+feature/RF006-sugestoes-perguntas      # Sistema de sugestões
+```
+
+### Critérios para decidir se quebra
+
+Quebrar quando:
+- O RF tem 5+ critérios de aceitação distintos
+- Envolve múltiplas áreas técnicas (ex: UI + backend + IA)
+- Pode ser testado/deployado independentemente
+- Levaria mais de 1-2 semanas para completar
+
+Manter como uma branch quando:
+- É uma funcionalidade coesa e pequena
+- Todos os critérios de aceitação são relacionados
+- Pode ser completado em alguns dias
+- Não faz sentido testar/deployar parcialmente
+
+### Convenção de nomenclatura sugerida
+
+```bash
+# RF completo (pequeno/médio)
+feature/RF002-interacao-nos
+
+# Sub-feature de RF grande
+feature/RF001-zoom-pan
+feature/RF003-filtros-basicos
+
+# Features que não são RFs (infra, refactor, etc)
+feature/setup-database
+refactor/otimizar-renderizacao
+fix/corrigir-bug-zoom
+```
+
+### Workflow prático
+
+1. Antes de começar: avalie o RF
+   - É grande? Quebre em sub-features
+   - É pequeno? Use o RF como branch única
+
+2. Durante o desenvolvimento: siga suas orientações
+   - Uma branch, uma coisa
+   - Commits pequenos e frequentes
+   - Use `git add -p` quando necessário
+
+3. Ordem de implementação:
+   - Comece pelos RFs de prioridade Alta
+   - Dentro de um RF grande, comece pela base (ex: setup antes de layouts)
+   - Considere dependências entre features
+
+### Exemplo de roadmap de branches
+
+**Fase 1 - MVP:**
+```
+feature/RF001-setup-grafo-base
+feature/RF001-zoom-pan
+feature/RF001-tipos-nos
+feature/RF002-interacao-nos
+feature/RF004-busca-navegacao
+feature/RF006-chat-ui-base
+feature/RF007-perguntas-caminho
+```
+
+### Vantagens dessa abordagem
+
+- Alinhado com suas orientações: uma branch, uma coisa
+- Histórico limpo: cada PR é focado e revisável
+- Deploy incremental: pode deployar partes funcionais
+- Testes mais simples: testa uma funcionalidade por vez
+- Flexibilidade: ajusta granularidade conforme necessário
+
+### Dica final
+
+Se durante o desenvolvimento perceber que uma branch está ficando grande demais, quebre em duas:
+```bash
+# Está trabalhando em feature/RF003-filtros-basicos
+# Mas percebeu que já tem 500+ linhas e ainda falta muito
+
+# Opção: Commita o que já tem
+git commit -m "feat: add filtros por afiliação e fruta"
+
+# Cria nova branch para o resto
+git checkout -b feature/RF003-filtros-avancados
+```
