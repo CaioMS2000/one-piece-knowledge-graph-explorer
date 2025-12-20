@@ -1,6 +1,13 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
   "extends": [
     "@caioms/biomejs-config/biome"
-  ]
+  ],
+  "linter": {
+    "rules":{
+      "suspicious": {
+        "noExplicitAny": "info"
+      }
+    }
+  }
 }

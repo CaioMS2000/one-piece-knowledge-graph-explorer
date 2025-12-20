@@ -10,6 +10,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.3.2",
     "@caioms/biomejs-config": "latest",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",

@@ -6,6 +6,7 @@
   "scripts": {
   },
   "dependencies": {
+    "@repo/core": "*"
   },
   "devDependencies": {
     "typescript": "5.9.2"
