@@ -16,6 +16,18 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^test"],
+      "outputs": ["coverage/**"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:cov": {
+      "dependsOn": ["^test:cov"],
+      "outputs": ["coverage/**"]
     }
   }
 }

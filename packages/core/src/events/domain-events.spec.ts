@@ -1,8 +1,8 @@
+import { describe, it, expect, mock, beforeEach } from 'bun:test'
 import { DomainEvent } from '../events/domain-event'
-import { UniqueEntityID } from '../entities/unique-entity-id'
-import { AggregateRoot } from '../entities/aggregate-root'
-import { DomainEvents } from '@/core/events/domain-events'
-import { vi } from 'vitest'
+import { UniqueEntityID } from '../entity/unique-entity-id'
+import { AggregateRoot } from '../entity/aggregate-root'
+import { DomainEvents } from './domain-events'
 
 class CustomAggregateCreated implements DomainEvent {
 	public ocurredAt: Date
@@ -20,7 +20,7 @@ class CustomAggregateCreated implements DomainEvent {
 
 class CustomAggregate extends AggregateRoot<null> {
 	static create() {
-		const aggregate = new CustomAggregate(null)
+		const aggregate = new CustomAggregate(null, new UniqueEntityID('test-id'))
 
 		aggregate.addDomainEvent(new CustomAggregateCreated(aggregate))
 
@@ -29,8 +29,13 @@ class CustomAggregate extends AggregateRoot<null> {
 }
 
 describe('domain events', () => {
-	it('should be able to dispatch and listen to events', async () => {
-		const callbackSpy = vi.fn()
+	beforeEach(() => {
+		DomainEvents.clearHandlers()
+		DomainEvents.clearMarkedAggregates()
+	})
+
+	it('should be able to dispatch and listen to events', () => {
+		const callbackSpy = mock(() => {})
 
 		// Subscriber cadastrado (ouvindo o evento de "resposta criada")
 		DomainEvents.register(callbackSpy, CustomAggregateCreated.name)

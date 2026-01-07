@@ -1,3 +1,4 @@
+import { test, expect } from 'bun:test'
 import { Either, failure, success } from './either'
 
 function doSomeThing(shouldSuccess: boolean): Either<string, number> {

@@ -1,13 +1,14 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
-  "extends": [
-    "@caioms/biomejs-config/biome"
-  ],
-  "linter": {
-    "rules":{
-      "suspicious": {
-        "noExplicitAny": "info"
-      }
-    }
-  }
+	"$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
+	"extends": ["@caioms/biomejs-config/biome"],
+	"linter": {
+		"rules": {
+			"suspicious": {
+				"noExplicitAny": "info"
+			},
+			"style": {
+				"useNodejsImportProtocol": "off"
+			}
+		}
+	}
 }

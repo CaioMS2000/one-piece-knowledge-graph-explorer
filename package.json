@@ -7,7 +7,9 @@
     "lint": "turbo run lint",
     "format": "biome format --write --no-errors-on-unmatched --files-ignore-unknown=true",
     "check-types": "turbo run check-types",
-    "prepare": "husky"
+    "test": "turbo run test",
+		"test:watch": "turbo run test:watch",
+		"test:cov": "turbo run test:cov"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.2",

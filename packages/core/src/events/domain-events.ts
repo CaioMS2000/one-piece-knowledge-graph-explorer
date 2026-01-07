@@ -4,7 +4,6 @@ import { DomainEvent } from './domain-event'
 
 type DomainEventCallback = (event: unknown) => void
 
-// biome-ignore lint/complexity/noStaticOnlyClass:
 export class DomainEvents {
 	private static handlersMap: Record<string, DomainEventCallback[]> = {}
 	private static markedAggregates: AggregateRoot<unknown>[] = []
@@ -20,8 +19,9 @@ export class DomainEvents {
 	}
 
 	private static dispatchAggregateEvents(aggregate: AggregateRoot<unknown>) {
-		// biome-ignore lint/complexity/noForEach:
-		aggregate.domainEvents.forEach((event: DomainEvent) => this.dispatch(event))
+		aggregate.domainEvents.forEach(
+			(event: DomainEvent) => void this.dispatch(event)
+		)
 	}
 
 	private static removeAggregateFromMarkedDispatchList(

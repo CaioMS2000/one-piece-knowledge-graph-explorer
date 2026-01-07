@@ -1,5 +1,11 @@
 {
-    "compilerOptions": {
-        "types": ["vitest/globals"]
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "paths": {
+      "@/*": ["./src/*"]
     }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
