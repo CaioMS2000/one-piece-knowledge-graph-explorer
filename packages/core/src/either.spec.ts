@@ -1,11 +1,11 @@
 import { test, expect } from 'bun:test'
-import { Either, failure, success } from './either'
+import { Either } from './either'
 
 function doSomeThing(shouldSuccess: boolean): Either<string, number> {
 	if (shouldSuccess) {
-		return success(10)
+		return Either.success(10)
 	} else {
-		return failure('error')
+		return Either.failure('error')
 	}
 }
 
