@@ -34,10 +34,21 @@ export class Success<L, R> {
 
 export type Either<L, R> = Failure<L, R> | Success<L, R>
 
-export const failure = <L, R>(value: L): Either<L, R> => {
-	return new Failure(value)
-}
+// export const failure = <L, R>(value: L): Either<L, R> => {
+// 	return new Failure(value)
+// }
 
-export const success = <L, R>(value: R): Either<L, R> => {
-	return new Success(value)
+// export const success = <L, R>(value: R): Either<L, R> => {
+// 	return new Success(value)
+// }
+export const Either = class _EitherClass{
+	private constructor(){} // prevent instantiation
+
+	static failure = <L, R>(value: L): Failure<L, R> => {
+		return new Failure(value)
+	}
+	
+	static success = <L, R>(value: R): Success<L, R> => {
+		return new Success(value)
+	}
 }
