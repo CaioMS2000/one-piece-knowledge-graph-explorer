@@ -1,908 +1,514 @@
-# 🗺️ Plano de Implementação do Backend
+# 🔧 Plano de Implementação - Backend
 ## One Piece Knowledge Graph Explorer
 
-Este documento define a ordem de implementação do backend, do mais fundamental ao mais avançado, seguindo os princípios de DDD e as regras de negócio especificadas.
+---
+
+## 📋 Ordem de Implementação
+
+### **FASE 1: Fundação e Infraestrutura (Semanas 1-2)**
+
+#### 1.1 Setup do Projeto
+- [ ] Inicializar projeto Node.js/TypeScript
+- [ ] Configurar estrutura de pastas (DDD/Clean Architecture)
+- [ ] Setup de ferramentas de desenvolvimento (ESLint, Prettier, Husky)
+- [ ] Configurar ambiente de desenvolvimento (Docker Compose)
+- [ ] Setup de CI/CD básico
+
+#### 1.2 Banco de Dados
+- [ ] Configurar PostgreSQL (dados relacionais)
+- [ ] Configurar Neo4j (grafo de conhecimento)
+- [ ] Configurar Redis (cache)
+- [ ] Criar scripts de migrations
+- [ ] Criar seeds com dados iniciais de teste
+
+#### 1.3 API Base
+- [ ] Setup do framework (Express/Fastify/NestJS)
+- [ ] Configurar middlewares básicos (CORS, helmet, compression)
+- [ ] Implementar sistema de logging
+- [ ] Configurar tratamento de erros global
+- [ ] Setup de validação de requests (Zod/Joi)
 
 ---
 
-## 📋 Visão Geral da Arquitetura
+### **FASE 2: Domínio Core - Personagens (Semanas 3-4)**
 
-### Stack Base
-- **Runtime:** Bun
-- **Framework API:** Hono (ou similar leve)
-- **Database Grafo:** Neo4j
-- **Database Relacional:** PostgreSQL (Drizzle ORM)
-- **Cache:** Redis
-- **Message Queue:** BullMQ (para eventos assíncronos)
-- **Vector DB:** Qdrant (para RAG)
-- **Search:** Typesense
+#### 2.1 Modelagem de Dados
+- [ ] Definir schema do personagem no PostgreSQL
+- [ ] Definir modelo de nó de personagem no Neo4j
+- [ ] Criar Value Objects (Bounty, Name, Affiliation)
+- [ ] Criar Entity: Character
+- [ ] Definir repositórios (interfaces)
 
-### Estrutura de Módulos (Bounded Contexts)
-```
-packages/
-├── core/              # Shared kernel (entidades base, value objects)
-├── characters/        # Contexto de personagens
-├── organizations/     # Contexto de organizações
-├── battles/          # Contexto de batalhas e power system
-├── graph/            # Contexto de grafo e análises
-├── chat/             # Contexto de IA conversacional
-├── users/            # Contexto de usuários
-└── api-gateway/      # Gateway unificado
-```
+#### 2.2 Casos de Uso - Personagens
+- [ ] CreateCharacter
+- [ ] GetCharacterById
+- [ ] UpdateCharacter
+- [ ] DeleteCharacter
+- [ ] ListCharacters (com paginação)
+- [ ] SearchCharacters (busca básica)
 
----
+#### 2.3 API REST - Personagens
+- [ ] POST /api/characters
+- [ ] GET /api/characters/:id
+- [ ] PUT /api/characters/:id
+- [ ] DELETE /api/characters/:id
+- [ ] GET /api/characters (lista + filtros)
+- [ ] GET /api/characters/search
 
-## 🎯 FASE 1: Fundação (Core Infrastructure)
-**Duração Estimada:** 2-3 semanas
-**Objetivo:** Estabelecer a base técnica e arquitetural
-
-### 1.1 Setup Inicial do Projeto ⭐⭐⭐⭐⭐
-**Prioridade:** Crítica | **Complexidade:** Baixa
-
-**Tarefas:**
-- [x] Configurar monorepo com Turborepo
-- [ ] Setup do package `@repo/core` com estrutura DDD
-  - [ ] Base classes: `AggregateRoot`, `Entity`, `ValueObject`
-  - [ ] `DomainEvent` base class
-  - [ ] Strongly Typed IDs (ex: `CharacterId`, `OrganizationId`)
-  - [ ] Business Rules infrastructure (`IBusinessRule`, `CheckRule`)
-  - [ ] Result pattern (erro handling funcional)
-- [ ] Setup de logging estruturado (Winston ou Pino)
-  - [ ] Integrar logger criado em `packages/core/src/logging/logger.ts`
-  - [ ] Configurar níveis e rotação
-- [ ] Setup de testes (Vitest)
-  - [ ] Configurar coverage
-  - [ ] Helpers de teste para agregados
-- [ ] CI/CD básico (GitHub Actions)
-  - [ ] Lint, format, type-check
-  - [ ] Testes unitários
-
-**Deliverable:** Estrutura base funcional com testes passando
+#### 2.4 Testes
+- [ ] Testes unitários dos casos de uso
+- [ ] Testes de integração dos repositórios
+- [ ] Testes E2E das rotas
 
 ---
 
-### 1.2 Database Infrastructure ⭐⭐⭐⭐⭐
-**Prioridade:** Crítica | **Complexidade:** Média
+### **FASE 3: Grafo de Relacionamentos (Semanas 5-6)**
 
-**Tarefas:**
-- [ ] **PostgreSQL Setup**
-  - [ ] Schema inicial com Drizzle
-  - [ ] Migrations setup
-  - [ ] Connection pool configuration
-  - [ ] Health check endpoint
+#### 3.1 Modelagem de Relacionamentos
+- [ ] Definir tipos de conexões (Crew, Family, Ally, Enemy, etc.)
+- [ ] Criar schema de relacionamentos no Neo4j
+- [ ] Criar Entity: Relationship
+- [ ] Criar Value Objects para tipos de conexão
 
-- [ ] **Neo4j Setup**
-  - [ ] Docker compose para desenvolvimento
-  - [ ] Driver configuration (neo4j-driver)
-  - [ ] Cypher query builders helpers
-  - [ ] Índices e constraints iniciais
+#### 3.2 Casos de Uso - Relacionamentos
+- [ ] CreateRelationship
+- [ ] GetCharacterConnections
+- [ ] FindPath (caminho entre dois personagens)
+- [ ] GetEgoNetwork (rede de N graus)
+- [ ] DeleteRelationship
 
-- [ ] **Redis Setup**
-  - [ ] Docker compose
-  - [ ] Connection management
-  - [ ] Cache abstraction layer
-  - [ ] Pub/Sub para eventos (opcional nesta fase)
+#### 3.3 API REST - Relacionamentos
+- [ ] POST /api/relationships
+- [ ] GET /api/characters/:id/connections
+- [ ] GET /api/characters/:id/network
+- [ ] POST /api/pathfinding (encontrar caminhos)
+- [ ] DELETE /api/relationships/:id
 
-**Deliverable:** Bancos configurados e acessíveis com testes de integração
-
----
-
-### 1.3 Shared Kernel (Value Objects Base) ⭐⭐⭐⭐⭐
-**Prioridade:** Crítica | **Complexidade:** Baixa
-
-**Implementar Value Objects em `@repo/core`:**
-- [ ] `Bounty` (validação, formatação, comparação)
-  - [ ] Business Rule: `BountyMustNotBeNegative`
-- [ ] `CharacterRank` (enum com hierarquia)
-- [ ] `DevilFruitType` (Paramecia/Zoan/Logia)
-- [ ] `ConnectionType` (tipos de relação)
-- [ ] `Email` (validação)
-- [ ] `ArcId`, `EpisodeNumber`, `ChapterNumber`
-- [ ] `PowerScore` (com confidence e breakdown)
-
-**Testes:**
-- [ ] Testes para cada Value Object
-- [ ] Validação de regras de negócio
-
-**Deliverable:** Value Objects reutilizáveis e testados
+#### 3.4 Algoritmos de Grafo
+- [ ] Shortest path (Dijkstra/A*)
+- [ ] Breadth-first search para ego network
+- [ ] Cálculo de graus de separação
 
 ---
 
-## 🎯 FASE 2: Contexto de Personagens (Core Domain)
-**Duração Estimada:** 3-4 semanas
-**Objetivo:** Implementar o coração do domínio
+### **FASE 4: Sistema de Busca (Semanas 7-8)**
 
-### 2.1 Character Aggregate ⭐⭐⭐⭐⭐
-**Prioridade:** Crítica | **Complexidade:** Alta
+#### 4.1 Setup do Elasticsearch/Typesense
+- [ ] Configurar container do Elasticsearch
+- [ ] Criar índices para personagens
+- [ ] Implementar sincronização PostgreSQL → Elasticsearch
+- [ ] Configurar analyzers (fuzzy search, autocomplete)
 
-**Estrutura:**
-```typescript
-packages/characters/
-├── domain/
-│   ├── aggregates/
-│   │   └── Character.ts           # Aggregate Root
-│   ├── entities/
-│   │   └── Battle.ts               # Entity (filha de Character)
-│   ├── value-objects/
-│   │   ├── FirstAppearance.ts
-│   │   └── CharacterStatus.ts     # vivo/morto/desconhecido
-│   ├── events/
-│   │   ├── CharacterCreatedEvent.ts
-│   │   ├── BountyUpdatedEvent.ts
-│   │   └── BattleAddedEvent.ts
-│   └── rules/
-│       ├── CharacterMustHaveNameRule.ts
-│       └── BountyCannotDecreaseRule.ts
-├── application/
-│   ├── commands/
-│   │   ├── CreateCharacterCommand.ts
-│   │   └── UpdateBountyCommand.ts
-│   ├── queries/
-│   │   ├── GetCharacterQuery.ts
-│   │   └── ListCharactersQuery.ts
-│   └── services/
-│       └── PowerLevelCalculator.ts   # Domain Service
-├── infrastructure/
-│   ├── repositories/
-│   │   └── CharacterRepository.ts
-│   └── mappers/
-│       └── CharacterMapper.ts
-└── api/
-    └── CharacterController.ts
-```
+#### 4.2 Casos de Uso - Busca
+- [ ] SearchCharactersFuzzy
+- [ ] AutocompleteCharacters
+- [ ] AdvancedSearch (múltiplos filtros)
+- [ ] SearchByAffiliation
+- [ ] SearchByDevilFruit
 
-**Tarefas:**
-- [ ] **Domain Layer**
-  - [ ] Criar `Character` Aggregate Root
-    - [ ] Propriedades: id, name, age, origin, bounty, rank, affiliation, status, firstAppearance
-    - [ ] Métodos: `addBattle()`, `updateBounty()`, `updateRank()`, `calculatePowerLevel()`
-    - [ ] Domain Events internos
-  - [ ] Criar `Battle` Entity (filha de Character)
-    - [ ] Propriedades: id, opponentId, result, difficulty, chapter, arc
-  - [ ] Business Rules
-    - [ ] Nome obrigatório
-    - [ ] Bounty não pode diminuir (exceto casos especiais)
-    - [ ] Status deve ser válido
-
-- [ ] **Application Layer (CQRS)**
-  - [ ] Commands:
-    - [ ] `CreateCharacterCommandHandler`
-    - [ ] `UpdateBountyCommandHandler`
-    - [ ] `AddBattleCommandHandler`
-  - [ ] Queries (otimizadas, direto no DB):
-    - [ ] `GetCharacterByIdQueryHandler`
-    - [ ] `ListCharactersByAffiliationQueryHandler`
-    - [ ] `SearchCharactersQueryHandler`
-  - [ ] DTOs de input/output
-
-- [ ] **Infrastructure Layer**
-  - [ ] `CharacterRepository` (interface + implementação PostgreSQL)
-    - [ ] `findById(id): Promise<Character | null>`
-    - [ ] `save(character): Promise<void>`
-    - [ ] `delete(id): Promise<void>`
-  - [ ] `CharacterMapper` (toDomain, toPersistence)
-  - [ ] Migrations para tabelas `characters` e `battles`
-
-- [ ] **API Layer**
-  - [ ] `POST /characters` - Criar personagem
-  - [ ] `GET /characters/:id` - Buscar por ID
-  - [ ] `PUT /characters/:id/bounty` - Atualizar bounty
-  - [ ] `GET /characters` - Listar com filtros
-  - [ ] `POST /characters/:id/battles` - Adicionar batalha
-
-**Deliverable:** CRUD completo de Characters com DDD puro
+#### 4.3 API REST - Busca
+- [ ] GET /api/search
+- [ ] GET /api/autocomplete
+- [ ] POST /api/search/advanced (body com filtros complexos)
 
 ---
 
-### 2.2 Power Level System ⭐⭐⭐⭐
-**Prioridade:** Alta | **Complexidade:** Alta
+### **FASE 5: Inteligência Artificial - RAG (Semanas 9-11)**
 
-**Implementar em `packages/characters/application/services/`:**
+#### 5.1 Setup do Vector Database
+- [ ] Configurar Pinecone/Qdrant
+- [ ] Criar embeddings de personagens
+- [ ] Criar embeddings de textos da wiki
+- [ ] Implementar pipeline de ingestão de dados
 
-**Tarefas:**
-- [ ] **PowerLevelCalculator (Domain Service)**
-  ```typescript
-  class PowerLevelCalculator {
-    calculate(character: Character): PowerScore {
-      // Algoritmo definido em regras-de-negocio.md seção 1
-      const bountyScore = this.normalizeBounty(character.bounty)
-      const rankScore = this.rankToValue(character.rank)
-      const battleScore = this.calculateBattleScore(character.battles)
-      const transitiveScore = this.calculateTransitiveScore(character)
+#### 5.2 Integração com LLM
+- [ ] Setup da API do OpenAI/Claude
+- [ ] Implementar sistema de prompts
+- [ ] Criar template de contexto para RAG
+- [ ] Implementar rate limiting para LLM
+- [ ] Cache de respostas frequentes (Redis)
 
-      return PowerScore.create({
-        total: bountyScore * 0.3 + rankScore * 0.25 + battleScore * 0.35 + transitiveScore * 0.1,
-        confidence: this.calculateConfidence(character),
-        breakdown: { bountyScore, rankScore, battleScore, transitiveScore }
-      })
-    }
-  }
-  ```
+#### 5.3 Casos de Uso - IA
+- [ ] AskQuestion (pergunta genérica)
+- [ ] ExplainRelationship (explica conexão)
+- [ ] CompareCharacters
+- [ ] SuggestDiscoveries
+- [ ] AnalyzeCharacter
 
-- [ ] Implementar normalização de bounty
-- [ ] Tabela de conversão de Ranks
-- [ ] Cálculo de score de batalhas (vitórias/derrotas/dificuldade)
-- [ ] Transitividade (via grafo - integração futura)
-- [ ] Cálculo de confiança (baseado em dados disponíveis)
-- [ ] Testes unitários extensivos
-  - [ ] Casos de borda (sem bounty, sem batalhas, etc)
-  - [ ] Exemplos da documentação (Luffy, personagem novo)
+#### 5.4 API REST - IA
+- [ ] POST /api/ai/ask
+- [ ] POST /api/ai/explain-relationship
+- [ ] POST /api/ai/compare
+- [ ] GET /api/ai/suggestions
 
-**Deliverable:** Power Level calculado e retornado em GET /characters/:id
+#### 5.5 RAG Pipeline
+- [ ] Retrieval: buscar contexto relevante (vector search)
+- [ ] Augmentation: montar contexto com dados do grafo
+- [ ] Generation: gerar resposta com LLM
+- [ ] Implementar citação de fontes
 
 ---
 
-### 2.3 Anti-Spoiler System ⭐⭐⭐⭐
-**Prioridade:** Alta | **Complexidade:** Média
+### **FASE 6: Power Level System (Semanas 12-13)**
 
-**Implementar em `packages/users/` e `packages/characters/`:**
+#### 6.1 Modelagem
+- [ ] Criar schema de batalhas no PostgreSQL
+- [ ] Criar Entity: Battle
+- [ ] Criar Value Object: PowerScore
+- [ ] Definir algoritmo de cálculo
 
-**Tarefas:**
-- [ ] **UserProgress Entity (em `users` context)**
-  ```typescript
-  class UserProgress extends Entity {
-    userId: UserId
-    type: 'anime' | 'manga'
-    currentEpisode?: number
-    currentChapter?: number
-    currentArc?: ArcId
+#### 6.2 Casos de Uso - Power System
+- [ ] CalculatePowerScore
+- [ ] RegisterBattle
+- [ ] CompareStrength
+- [ ] GetRankings
+- [ ] RecalculateAllScores (batch job)
 
-    shouldBlockContent(contentFirstAppearance: FirstAppearance): boolean {
-      // Regra de negócio seção 3
-    }
-  }
-  ```
+#### 6.3 API REST - Power System
+- [ ] POST /api/battles
+- [ ] GET /api/characters/:id/power-score
+- [ ] POST /api/compare-strength
+- [ ] GET /api/rankings
 
-- [ ] **SpoilerBlocker (Domain Service)**
-  - [ ] Método `shouldBlock(character, userProgress): boolean`
-  - [ ] Níveis de bloqueio: total, parcial, nenhum
-  - [ ] Motivo do bloqueio (mensagem)
-
-- [ ] Tabela de mapeamento Episódio/Capítulo → Arco
-- [ ] Decorador para queries que aplica filtro anti-spoiler
-- [ ] Testes com cenários da documentação
-
-**Deliverable:** Queries retornam apenas conteúdo não-bloqueado
+#### 6.4 Implementação do Algoritmo
+- [ ] Normalização dinâmica de métricas
+- [ ] Cálculo de transitividade no grafo
+- [ ] Sistema de confiança (confidence score)
+- [ ] Job assíncrono para recalcular scores
 
 ---
 
-## 🎯 FASE 3: Contexto de Organizações e Locais
-**Duração Estimada:** 2 semanas
-**Objetivo:** Expandir o modelo de domínio
+### **FASE 7: Organizações e Locais (Semanas 14-15)**
 
-### 3.1 Organization Aggregate ⭐⭐⭐⭐
-**Prioridade:** Alta | **Complexidade:** Média
+#### 7.1 Organizações
+- [ ] Criar Entity: Organization
+- [ ] CreateOrganization, GetOrganization, etc.
+- [ ] Relacionar personagens com organizações (Neo4j)
+- [ ] API REST: /api/organizations
 
-**Estrutura Similar a Characters:**
-```
-packages/organizations/
-├── domain/
-│   ├── Organization.ts          # Aggregate Root
-│   ├── events/
-│   └── rules/
-├── application/
-│   ├── commands/
-│   └── queries/
-├── infrastructure/
-└── api/
-```
+#### 7.2 Locais
+- [ ] Criar Entity: Location
+- [ ] CreateLocation, GetLocation, etc.
+- [ ] Relacionar personagens com locais
+- [ ] API REST: /api/locations
 
-**Tarefas:**
-- [ ] Criar `Organization` Aggregate
-  - [ ] Propriedades: id, name, type, leaders[], members[], hierarchy, territories[]
-  - [ ] Métodos: `addMember()`, `removeMember()`, `calculateTotalBounty()`, `getMembersByRank()`
-- [ ] Commands e Queries
-- [ ] Repository + Mapper
-- [ ] API endpoints
-
-**Deliverable:** CRUD de organizações
+#### 7.3 Frutas do Diabo
+- [ ] Criar Entity: DevilFruit
+- [ ] CRUD completo
+- [ ] Relacionar com usuários
+- [ ] API REST: /api/devil-fruits
 
 ---
 
-### 3.2 Location Aggregate ⭐⭐⭐
-**Prioridade:** Média | **Complexidade:** Baixa
+### **FASE 8: Sistema de Usuários e Autenticação (Semanas 16-17)**
 
-**Tarefas:**
-- [ ] Criar `Location` Aggregate
-  - [ ] Propriedades: id, name, region, ruler, nativeCharacters[]
-- [ ] Commands e Queries
-- [ ] Repository
-- [ ] API endpoints
+#### 8.1 Autenticação
+- [ ] Criar Entity: User
+- [ ] Implementar hash de senha (bcrypt)
+- [ ] Implementar JWT
+- [ ] Casos de Uso: Register, Login, RefreshToken, Logout
+- [ ] Middleware de autenticação
 
-**Deliverable:** CRUD de locais
+#### 8.2 API REST - Auth
+- [ ] POST /api/auth/register
+- [ ] POST /api/auth/login
+- [ ] POST /api/auth/refresh
+- [ ] POST /api/auth/logout
+- [ ] GET /api/auth/me
 
----
-
-### 3.3 DevilFruit Aggregate ⭐⭐⭐
-**Prioridade:** Média | **Complexidade:** Baixa
-
-**Tarefas:**
-- [ ] Criar `DevilFruit` Aggregate
-  - [ ] Propriedades: id, name, type, powers[], currentUser, previousUsers[]
-  - [ ] Métodos: `isAwakened()`, `transferToUser()`
-- [ ] Repository
-- [ ] API endpoints
-
-**Deliverable:** CRUD de frutas do diabo
+#### 8.3 Autorização
+- [ ] Sistema de roles (Admin, User, Guest)
+- [ ] Middleware de autorização
+- [ ] Proteção de rotas sensíveis
 
 ---
 
-## 🎯 FASE 4: Contexto de Grafo (Neo4j Integration)
-**Duração Estimada:** 3-4 semanas
-**Objetivo:** Implementar funcionalidades de grafo
+### **FASE 9: Features Sociais (Semanas 18-19)**
 
-### 4.1 Graph Infrastructure ⭐⭐⭐⭐⭐
-**Prioridade:** Crítica | **Complexidade:** Alta
+#### 9.1 Coleções
+- [ ] Criar Entity: Collection
+- [ ] CRUD de coleções
+- [ ] Adicionar/remover personagens de coleções
+- [ ] API REST: /api/collections
 
-**Estrutura:**
-```
-packages/graph/
-├── domain/
-│   ├── Connection.ts            # Aggregate Root
-│   ├── Path.ts                  # Value Object ou Aggregate?
-│   └── CentralityAnalysis.ts    # Aggregate Root
-├── application/
-│   ├── services/
-│   │   ├── PathfindingService.ts
-│   │   ├── CentralityService.ts
-│   │   └── GraphSyncService.ts
-│   └── queries/
-├── infrastructure/
-│   ├── Neo4jGraphRepository.ts
-│   └── GraphMapper.ts
-└── api/
-```
+#### 9.2 Favoritos
+- [ ] Schema de favoritos (User ↔ Character)
+- [ ] Casos de Uso: AddFavorite, RemoveFavorite, GetFavorites
+- [ ] API REST: /api/favorites
 
-**Tarefas:**
-- [ ] **Connection Aggregate**
-  - [ ] Propriedades: id, sourceId, targetId, type, bidirectional, firstAppearance
-  - [ ] Métodos: `isBidirectional()`, `shouldBeBlocked(userProgress)`
+#### 9.3 Comentários
+- [ ] Criar Entity: Comment
+- [ ] CRUD de comentários
+- [ ] Sistema de upvote/downvote
+- [ ] Moderação básica
+- [ ] API REST: /api/comments
 
-- [ ] **GraphSyncService**
-  - [ ] Sincronizar mudanças do PostgreSQL → Neo4j
-  - [ ] Listener de Domain Events:
-    - [ ] `CharacterCreatedEvent` → Criar nó no Neo4j
-    - [ ] `ConnectionCreatedEvent` → Criar relação
-  - [ ] Usar Outbox Pattern para garantir consistência
-
-- [ ] **Neo4jGraphRepository**
-  - [ ] `createNode(character)`: Criar nó de personagem
-  - [ ] `createRelationship(connection)`: Criar relação
-  - [ ] `findPath(from, to, strategy, filters)`: Pathfinding
-  - [ ] `getConnections(characterId, depth)`: Buscar conexões N-níveis
-
-- [ ] Implementar Outbox + Background Worker
-  - [ ] Tabela `outbox_events`
-  - [ ] Worker que processa eventos e sincroniza com Neo4j
-
-**Deliverable:** Sincronização PostgreSQL ↔ Neo4j funcional
+#### 9.4 Gamificação
+- [ ] Schema de pontos e badges
+- [ ] Sistema de achievements
+- [ ] Cálculo de níveis
+- [ ] API REST: /api/user/achievements
 
 ---
 
-### 4.2 Pathfinding System ⭐⭐⭐⭐
-**Prioridade:** Alta | **Complexidade:** Alta
+### **FASE 10: Análises Avançadas (Semanas 20-21)**
 
-**Tarefas:**
-- [ ] **PathfindingService**
-  - [ ] Estratégia: Shortest Path (BFS)
-  - [ ] Estratégia: Strongest Path (Dijkstra modificado)
-  - [ ] Estratégia: Most Common (PageRank local)
-  - [ ] Estratégia: All Paths (DFS limitado)
-  - [ ] Aplicar filtros de conexão e personagem
-  - [ ] Cálculo de score do caminho
+#### 10.1 Métricas de Grafo
+- [ ] Implementar Degree Centrality
+- [ ] Implementar Betweenness Centrality
+- [ ] Implementar PageRank
+- [ ] Implementar Clustering Coefficient
 
-- [ ] Queries Cypher otimizadas
-- [ ] Cache de caminhos frequentes (Redis)
-- [ ] Testes com casos da documentação
+#### 10.2 Detecção de Comunidades
+- [ ] Implementar algoritmo Louvain
+- [ ] Identificar clusters no grafo
+- [ ] API REST: /api/analytics/communities
 
-**API:**
-- [ ] `POST /graph/pathfinding`
-  - Body: `{ from, to, strategy, filters, maxDepth, limit }`
-  - Response: `{ paths: Path[], stats }`
+#### 10.3 Evolução Temporal
+- [ ] Schema de versões temporais
+- [ ] Snapshots do grafo por arco
+- [ ] API REST: /api/analytics/timeline
 
-**Deliverable:** Pathfinding funcional com múltiplas estratégias
-
----
-
-### 4.3 Centrality Analysis ⭐⭐⭐
-**Prioridade:** Média | **Complexidade:** Alta
-
-**Tarefas:**
-- [ ] **CentralityService**
-  - [ ] Degree Centrality
-  - [ ] Betweenness Centrality
-  - [ ] Closeness Centrality
-  - [ ] PageRank
-  - [ ] Eigenvector Centrality (opcional)
-
-- [ ] Cache de resultados (recalcular apenas quando grafo muda)
-- [ ] Background job para recalcular métricas periodicamente
-
-**API:**
-- [ ] `GET /graph/centrality?metric=pagerank&limit=10`
-
-**Deliverable:** Análises de centralidade disponíveis
+#### 10.4 API REST - Analytics
+- [ ] GET /api/analytics/centrality
+- [ ] GET /api/analytics/communities
+- [ ] GET /api/analytics/evolution
 
 ---
 
-## 🎯 FASE 5: Contexto de Batalhas e Simulações
-**Duração Estimada:** 2-3 semanas
-**Objetivo:** Sistema de batalhas e comparações
+### **FASE 11: Performance e Otimizações (Semanas 22-23)**
 
-### 5.1 Battle Simulation System ⭐⭐⭐
-**Prioridade:** Média | **Complexidade:** Alta
+#### 11.1 Caching
+- [ ] Implementar cache em Redis para queries frequentes
+- [ ] Cache de respostas da IA
+- [ ] Cache de cálculos de power score
+- [ ] Estratégia de invalidação de cache
 
-**Estrutura:**
-```
-packages/battles/
-├── domain/
-│   ├── BattleSimulation.ts      # Aggregate Root
-│   └── SimulationResult.ts      # Value Object
-├── application/
-│   └── services/
-│       └── BattleSimulator.ts   # Domain Service
-└── api/
-```
+#### 11.2 Rate Limiting
+- [ ] Implementar rate limiting por IP
+- [ ] Rate limiting por usuário
+- [ ] Rate limiting especial para LLM
 
-**Tarefas:**
-- [ ] **BattleSimulator (Domain Service)**
-  - [ ] Algoritmo da seção 6 (regras-de-negocio.md)
-  - [ ] Cálculo de power base
-  - [ ] Fatores de ajuste:
-    - [ ] Vantagens de tipo (matchups)
-    - [ ] Sinergia entre aliados
-    - [ ] Ambiente
-    - [ ] Condições especiais
-  - [ ] Simulação Monte Carlo (1000+ iterações)
-  - [ ] Cálculo de confiança
+#### 11.3 Otimização de Queries
+- [ ] Índices no PostgreSQL
+- [ ] Índices no Neo4j
+- [ ] Otimização de queries N+1
+- [ ] Lazy loading onde apropriado
 
-- [ ] Modos: 1v1, equipe, tripulação, torneio
-
-**API:**
-- [ ] `POST /battles/simulate`
-  - Body: `{ sideA: CharacterId[], sideB: CharacterId[], mode, params }`
-  - Response: `{ probabilities, results, analysis, confidence }`
-
-**Deliverable:** Simulador de batalhas funcional
+#### 11.4 Jobs Assíncronos
+- [ ] Setup de fila de jobs (Bull/BullMQ)
+- [ ] Job de recalcular power scores
+- [ ] Job de sincronização com Elasticsearch
+- [ ] Job de backup
 
 ---
 
-### 5.2 Ranking System ⭐⭐⭐
-**Prioridade:** Baixa | **Complexidade:** Média
-
-**Tarefas:**
-- [ ] **RankingService**
-  - [ ] Ranking por força (power score)
-  - [ ] Ranking por bounty
-  - [ ] Ranking por conexões
-  - [ ] Ranking por centralidade
-  - [ ] Filtros (vivos/mortos, organização, período)
-
-- [ ] Cache agressivo (atualizar ao criar/editar personagens)
-
-**API:**
-- [ ] `GET /rankings?type=power&filter=alive&limit=100`
-
-**Deliverable:** Rankings disponíveis
-
----
-
-## 🎯 FASE 6: Contexto de Usuários e Social
-**Duração Estimada:** 2-3 semanas
-**Objetivo:** Sistema de usuários e features sociais
-
-### 6.1 User Management ⭐⭐⭐⭐
-**Prioridade:** Alta | **Complexidade:** Média
-
-**Estrutura:**
-```
-packages/users/
-├── domain/
-│   ├── User.ts                  # Aggregate Root
-│   ├── UserProgress.ts          # Entity (filha de User)
-│   ├── UserStats.ts             # Entity
-│   └── UserAchievement.ts       # Entity
-├── application/
-│   ├── commands/
-│   └── queries/
-├── infrastructure/
-└── api/
-```
-
-**Tarefas:**
-- [ ] **User Aggregate**
-  - [ ] Propriedades: id, email, passwordHash, profile, favoriteCharacter
-  - [ ] Métodos: `register()`, `updateProfile()`
-
-- [ ] **UserProgress Entity**
-  - [ ] Já implementado na Fase 2.3
-
-- [ ] **UserStats Entity**
-  - [ ] Propriedades: xp, level, exploredCharacters[], completedChallenges[]
-  - [ ] Métodos: `addXP()`, `calculateLevel()`, `checkAchievements()`
-
-- [ ] Autenticação JWT
-- [ ] Refresh tokens
-- [ ] Email verification (opcional)
-
-**API:**
-- [ ] `POST /auth/register`
-- [ ] `POST /auth/login`
-- [ ] `GET /users/:id`
-- [ ] `PUT /users/:id/progress`
-
-**Deliverable:** Sistema de usuários funcional
-
----
-
-### 6.2 Gamification System ⭐⭐⭐
-**Prioridade:** Média | **Complexidade:** Média
-
-**Tarefas:**
-- [ ] **Achievement System**
-  - [ ] Definir conquistas (badges) - seção 9
-  - [ ] Event listeners para desbloquear
-  - [ ] Notificações ao usuário
-
-- [ ] **XP System**
-  - [ ] Tabela de pontos por ação
-  - [ ] Fórmula de níveis (100 * nivel^1.5)
-  - [ ] Prevenção de farming (cooldowns, uniqueness)
-
-- [ ] **Challenge System**
-  - [ ] Aggregate `Challenge`
-  - [ ] Verificação de conclusão
-  - [ ] Recompensas
-
-**Deliverable:** Gamificação funcional
-
----
-
-### 6.3 Collections and Favorites ⭐⭐
-**Prioridade:** Baixa | **Complexidade:** Baixa
-
-**Tarefas:**
-- [ ] **Collection Aggregate**
-  - [ ] Propriedades: id, userId, name, description, characters[], tags[], isPublic
-  - [ ] Métodos: `addCharacter()`, `removeCharacter()`, `isPublic()`
-
-- [ ] Repository + API
-
-**Deliverable:** Usuários podem criar coleções
-
----
-
-## 🎯 FASE 7: Contexto de Chat e IA
-**Duração Estimada:** 4-5 semanas
-**Objetivo:** Assistente de IA conversacional
-
-### 7.1 RAG Infrastructure ⭐⭐⭐⭐⭐
-**Prioridade:** Crítica | **Complexidade:** Alta
-
-**Estrutura:**
-```
-packages/chat/
-├── domain/
-│   ├── ChatConversation.ts      # Aggregate Root
-│   └── ChatMessage.ts           # Entity
-├── application/
-│   ├── services/
-│   │   ├── RAGService.ts
-│   │   ├── EntityExtractor.ts
-│   │   └── QuestionClassifier.ts
-│   └── commands/
-├── infrastructure/
-│   ├── QdrantVectorStore.ts
-│   ├── OpenAIEmbeddings.ts
-│   └── LLMProvider.ts
-└── api/
-```
-
-**Tarefas:**
-- [ ] **Setup de Embeddings (Qdrant + OpenAI)**
-  - [ ] Ingerir textos da wiki do One Piece
-  - [ ] Criar embeddings com text-embedding-3
-  - [ ] Armazenar em Qdrant com metadados
-
-- [ ] **RAGService (seção 10)**
-  - [ ] Extrair entidades da pergunta (NER)
-  - [ ] Buscar no grafo de conhecimento
-  - [ ] Buscar na wiki (embeddings)
-  - [ ] Buscar em conversas anteriores
-  - [ ] Combinar e priorizar fontes
-  - [ ] Construir contexto para LLM
-  - [ ] Gerar resposta
-  - [ ] Extrair citações
-
-- [ ] **QuestionClassifier**
-  - [ ] Classificar tipo: caminho, agregação, comparação, análise, descoberta
-  - [ ] Prompt engineering para classificação
-
-- [ ] **EntityExtractor**
-  - [ ] Identificar personagens, locais, eventos mencionados
-  - [ ] Fuzzy matching com entidades do grafo
-
-- [ ] LLM Provider abstraction (OpenAI/Anthropic)
-
-**Deliverable:** Sistema RAG funcional
-
----
-
-### 7.2 Chat Conversation Management ⭐⭐⭐⭐
-**Prioridade:** Alta | **Complexidade:** Média
-
-**Tarefas:**
-- [ ] **ChatConversation Aggregate**
-  - [ ] Propriedades: id, userId, messages[], graphContext
-  - [ ] Métodos: `addMessage()`, `getContext()`
-
-- [ ] **ChatMessage Entity**
-  - [ ] Propriedades: id, type (user/assistant), content, timestamp, entities[], suggestedActions[]
-
-- [ ] Persistência de conversas
-- [ ] Contexto mantido entre mensagens (sliding window)
-- [ ] Sugestões de perguntas
-
-**API:**
-- [ ] `POST /chat/conversations` - Criar conversa
-- [ ] `POST /chat/conversations/:id/messages` - Enviar mensagem
-- [ ] `GET /chat/conversations/:id` - Buscar conversa
-
-**Deliverable:** Chat funcional com histórico
-
----
-
-### 7.3 Graph ↔ Chat Sync ⭐⭐⭐⭐
-**Prioridade:** Alta | **Complexidade:** Média
-
-**Tarefas:**
-- [ ] **GraphActionService**
-  - [ ] Mapear tipo de pergunta → ações no grafo
-  - [ ] Destacar nós/arestas
-  - [ ] Aplicar filtros temporários
-  - [ ] Calcular zoom/pan
-
-- [ ] Integration Events entre contextos
-  - [ ] `UserClickedNodeEvent` (do frontend) → contexto ao chat
-  - [ ] `ChatAnsweredEvent` → ações no grafo
-
-- [ ] WebSocket para comunicação real-time (opcional)
-
-**Deliverable:** Chat sincronizado com grafo
-
----
-
-## 🎯 FASE 8: Geração e Criatividade
-**Duração Estimada:** 2 semanas
-**Objetivo:** Features criativas
-
-### 8.1 Crew Generator ⭐⭐
-**Prioridade:** Baixa | **Complexidade:** Média
-
-**Tarefas:**
-- [ ] **CrewGenerator (Domain Service)**
-  - [ ] Algoritmo da seção 8
-  - [ ] Filtrar candidatos
-  - [ ] Selecionar capitão
-  - [ ] Balancear membros
-  - [ ] Calcular métricas (balanceamento, versatilidade, sinergia)
-  - [ ] Determinar quem pode derrotar
-
-**API:**
-- [ ] `POST /generators/crew`
-
-**Deliverable:** Gerador de tripulações
-
----
-
-### 8.2 "What If" Generator ⭐⭐
-**Prioridade:** Baixa | **Complexidade:** Média
-
-**Tarefas:**
-- [ ] Cenários de troca de frutas
-- [ ] Alianças alternativas
-- [ ] Matchups impossíveis
-- [ ] Usar LLM para gerar narrativas
-
-**Deliverable:** Gerador de cenários hipotéticos
-
----
-
-## 🎯 FASE 9: Administração e Curadoria
-**Duração Estimada:** 2 semanas
-**Objetivo:** Sistema de contribuição e moderação
-
-### 9.1 Contribution System ⭐⭐⭐
-**Prioridade:** Média | **Complexidade:** Média
-
-**Tarefas:**
-- [ ] **Contribution Aggregate**
-  - [ ] Propriedades: id, userId, type, entityId, suggestedData, status
-  - [ ] Métodos: `approve()`, `reject(reason)`
-
-- [ ] Workflow de aprovação
-- [ ] Notificações ao usuário
-- [ ] Sistema de pontos para contribuições aprovadas
-
-**Deliverable:** Usuários podem contribuir
-
----
-
-### 9.2 Admin Dashboard (Backend) ⭐⭐
-**Prioridade:** Baixa | **Complexidade:** Baixa
-
-**Tarefas:**
-- [ ] Endpoints administrativos
-- [ ] Autenticação de admin (roles)
-- [ ] Logs de atividade
-- [ ] Estatísticas gerais
-
-**Deliverable:** Backend para dashboard admin
-
----
-
-## 🎯 FASE 10: API Pública e Integrações
-**Duração Estimada:** 1-2 semanas
-**Objetivo:** Expor dados para terceiros
-
-### 10.1 Public API ⭐⭐
-**Prioridade:** Baixa | **Complexidade:** Baixa
-
-**Tarefas:**
-- [ ] API Gateway separado
-- [ ] Rate limiting (por tier)
-- [ ] API Keys management
-- [ ] Documentação OpenAPI/Swagger
-- [ ] SDK clients (opcional)
-
-**Deliverable:** API pública documentada
-
----
-
-### 10.2 Webhooks ⭐
-**Prioridade:** Baixa | **Complexidade:** Baixa
-
-**Tarefas:**
+### **FASE 12: API Pública e Exportações (Semana 24)**
+
+#### 12.1 Documentação da API
+- [ ] Setup do Swagger/OpenAPI
+- [ ] Documentar todos os endpoints
+- [ ] Exemplos de requests/responses
+- [ ] Guia de autenticação
+
+#### 12.2 Versionamento
+- [ ] Implementar versionamento da API (v1, v2)
+- [ ] Estratégia de deprecação
+
+#### 12.3 Exportações
+- [ ] Endpoint de exportação JSON
+- [ ] Endpoint de exportação CSV
+- [ ] Endpoint de exportação GraphML
+- [ ] Stream de dados grandes
+
+#### 12.4 Webhooks
 - [ ] Sistema de registro de webhooks
-- [ ] Eventos disponíveis
-- [ ] Delivery garantido (retry logic)
-
-**Deliverable:** Webhooks funcionais
+- [ ] Disparo de eventos
+- [ ] Retry mechanism
 
 ---
 
-## 📊 Resumo de Prioridades
+### **FASE 13: Testes e Qualidade (Semana 25)**
 
-### Críticas (Fazer Primeiro)
-1. Setup Inicial (1.1)
-2. Database Infrastructure (1.2)
-3. Shared Kernel (1.3)
-4. Character Aggregate (2.1)
-5. Graph Infrastructure (4.1)
-6. RAG Infrastructure (7.1)
+#### 13.1 Cobertura de Testes
+- [ ] Testes unitários (>80% cobertura)
+- [ ] Testes de integração
+- [ ] Testes E2E completos
+- [ ] Testes de carga (k6/Artillery)
 
-### Altas (Fazer em Seguida)
-7. Power Level System (2.2)
-8. Anti-Spoiler (2.3)
-9. Organization Aggregate (3.1)
-10. Pathfinding (4.2)
-11. User Management (6.1)
-12. Chat Conversation (7.2)
-13. Graph ↔ Chat Sync (7.3)
-14. Battle Simulation (5.1)
-
-### Médias e Baixas (Fazer Depois)
-- Locations, DevilFruits, Centrality, Rankings
-- Gamification, Collections
-- Crew Generator, What If Generator
-- Contribution System, Admin Dashboard
-- Public API, Webhooks
+#### 13.2 Qualidade de Código
+- [ ] Setup de SonarQube
+- [ ] Análise de code smells
+- [ ] Refactoring baseado em métricas
 
 ---
 
-## 🏗️ Padrões Arquiteturais a Seguir
+### **FASE 14: Monitoramento e Observabilidade (Semana 26)**
 
-### 1. DDD Patterns
-- **Aggregate Roots:** Apenas raízes têm repositórios
-- **Entities vs Value Objects:** Identidade vs Valor
-- **Domain Events:** Para side effects
-- **Bounded Contexts:** Módulos isolados
+#### 14.1 Logging
+- [ ] Logging estruturado (Winston/Pino)
+- [ ] Correlação de logs (request ID)
+- [ ] Logs de erros detalhados
 
-### 2. CQRS
-- **Commands:** Modificam estado (Write Model)
-- **Queries:** Leem dados otimizados (Read Model)
-- Queries podem acessar DB diretamente (não passam por agregados)
+#### 14.2 Métricas
+- [ ] Setup do Prometheus
+- [ ] Métricas customizadas (requests, latency, etc.)
+- [ ] Dashboards no Grafana
 
-### 3. Event-Driven
-- **Domain Events:** Dentro do contexto
-- **Integration Events:** Entre contextos (via Outbox)
-- **Inbox Pattern:** Para receber eventos de outros módulos
+#### 14.3 Error Tracking
+- [ ] Integração com Sentry
+- [ ] Alertas de erros críticos
 
-### 4. Consistency Patterns
-- **Transações:** Apenas 1 agregado por transação
-- **Eventual Consistency:** Entre contextos
-- **Outbox Pattern:** Garantir entrega de eventos
-
-### 5. Clean Architecture
-- **Domain** → independente
-- **Application** → depende de Domain
-- **Infrastructure** → depende de Application
-- **API** → depende de Application
+#### 14.4 APM
+- [ ] Application Performance Monitoring
+- [ ] Tracing distribuído (se microservices)
 
 ---
 
-## 🧪 Estratégia de Testes
+### **FASE 15: Deploy e DevOps (Semana 27-28)**
 
-### Por Camada
-1. **Domain:** Testes unitários puros (90%+ coverage)
-2. **Application:** Testes de integração com mocks de infra
-3. **Infrastructure:** Testes com bancos reais (Docker)
-4. **API:** Testes E2E
+#### 15.1 Containerização
+- [ ] Dockerfile otimizado
+- [ ] Docker Compose para ambiente local
+- [ ] Multi-stage builds
 
-### Tipos de Testes
-- **Unit:** Domain logic, Value Objects, Business Rules
-- **Integration:** Commands, Queries, Repositories
-- **E2E:** Fluxos completos via API
+#### 15.2 Infraestrutura
+- [ ] Setup no AWS/GCP/Azure
+- [ ] Configurar load balancer
+- [ ] Auto-scaling
+- [ ] CDN para assets
+
+#### 15.3 CI/CD
+- [ ] Pipeline de testes automáticos
+- [ ] Deploy automático em staging
+- [ ] Deploy manual em produção
+- [ ] Rollback strategy
+
+#### 15.4 Segurança
+- [ ] HTTPS/TLS
+- [ ] Secrets management
+- [ ] Proteção contra OWASP Top 10
+- [ ] Backups automáticos
 
 ---
 
-## 📦 Dependências Principais
+## 🎯 Marcos Importantes
 
-```json
-{
-  "dependencies": {
-    "@hono/hono": "^4.0.0",
-    "drizzle-orm": "^0.30.0",
-    "neo4j-driver": "^5.0.0",
-    "redis": "^4.0.0",
-    "bullmq": "^5.0.0",
-    "qdrant-client": "^1.0.0",
-    "openai": "^4.0.0",
-    "zod": "^3.0.0",
-    "dayjs": "^1.11.0"
-  },
-  "devDependencies": {
-    "vitest": "^4.0.0",
-    "drizzle-kit": "^0.20.0",
-    "typescript": "^5.9.0"
-  }
-}
+| Semana | Marco | Entregável |
+|--------|-------|------------|
+| 2 | Fundação | API básica rodando com DB configurado |
+| 4 | CRUD Personagens | API de personagens completa e testada |
+| 6 | Grafo Base | Sistema de relacionamentos funcionando |
+| 8 | Busca | Elasticsearch integrado e funcional |
+| 11 | IA/RAG | Chat com IA respondendo perguntas |
+| 13 | Power System | Sistema de força e batalhas implementado |
+| 17 | Autenticação | Sistema de usuários completo |
+| 19 | Features Sociais | Coleções, favoritos e comentários |
+| 21 | Analytics | Análises avançadas de grafo |
+| 24 | API Pública | Documentação completa e exportações |
+| 28 | Produção | Sistema em produção com monitoramento |
+
+---
+
+## 📦 Stack Tecnológica
+
+### Core
+- **Runtime:** Node.js 20+
+- **Linguagem:** TypeScript 5+
+- **Framework:** NestJS (recomendado) ou Fastify
+
+### Bancos de Dados
+- **Relacional:** PostgreSQL 16
+- **Grafo:** Neo4j 5
+- **Cache:** Redis 7
+- **Search:** Elasticsearch 8 ou Typesense
+- **Vector DB:** Pinecone ou Qdrant
+
+### IA/ML
+- **LLM:** OpenAI GPT-4 ou Anthropic Claude
+- **Embeddings:** OpenAI text-embedding-3-small
+- **Orchestration:** LangChain
+
+### DevOps
+- **Container:** Docker + Docker Compose
+- **CI/CD:** GitHub Actions
+- **Monitoring:** Prometheus + Grafana
+- **Logging:** Winston/Pino
+- **Error Tracking:** Sentry
+
+---
+
+## 🏗️ Arquitetura
+
+### Padrões
+- **Clean Architecture** (Domain, Use Cases, Adapters, Infra)
+- **DDD** (Domain-Driven Design)
+- **CQRS** (para operações complexas)
+- **Repository Pattern**
+- **Dependency Injection**
+
+### Estrutura de Pastas
+```
+src/
+├── domain/              # Entidades, Value Objects, Interfaces
+│   ├── character/
+│   ├── relationship/
+│   ├── organization/
+│   └── user/
+├── application/         # Casos de Uso
+│   ├── character/
+│   ├── relationship/
+│   └── ai/
+├── infrastructure/      # Implementações (DB, API externa)
+│   ├── database/
+│   ├── cache/
+│   ├── search/
+│   └── llm/
+├── presentation/        # Controllers, Routes
+│   ├── http/
+│   └── graphql/        # (opcional)
+└── shared/             # Utilitários, tipos compartilhados
 ```
 
 ---
 
-## 🚀 Critérios de Conclusão de Cada Fase
+## ⚠️ Considerações Importantes
 
-### Fase Completa Quando:
-- [ ] Todos os testes passando (>80% coverage)
-- [ ] API endpoints funcionais e documentados
-- [ ] Migrations rodando sem erros
-- [ ] Logs estruturados implementados
-- [ ] Code review aprovado
-- [ ] Documentação atualizada
+### Performance
+- Implementar paginação em todas as listas
+- Usar DataLoader para evitar N+1 queries
+- Cache agressivo em queries de leitura frequente
+- Rate limiting para proteger recursos caros (LLM)
+
+### Segurança
+- Sanitizar todos os inputs
+- Proteção contra SQL Injection
+- Proteção contra Cypher Injection (Neo4j)
+- Validação rigorosa com schemas (Zod)
+- CORS configurado corretamente
+
+### Escalabilidade
+- Stateless API (facilita horizontal scaling)
+- Jobs assíncronos para operações pesadas
+- Separação de read/write (CQRS) se necessário
+- Microservices se crescer muito (opcional)
+
+### Custos
+- Monitorar uso de LLM (maior custo)
+- Cache de embeddings para reduzir chamadas
+- Limitar complexidade de queries ao Neo4j
+- Otimizar storage de imagens
 
 ---
 
-## 📝 Notas Importantes
+## 📝 Próximos Passos
 
-1. **Não pular fases:** Cada fase depende da anterior
-2. **Testar continuamente:** TDD quando possível
-3. **Refatorar quando necessário:** Mas não antes de funcionar
-4. **Documentar decisões:** ADRs (Architecture Decision Records)
-5. **Manter DDD puro:** Sem vazamentos entre camadas
-6. **Pensar em performance:** Mas só otimizar quando necessário
-7. **Eventos são chave:** Para desacoplamento entre contextos
+1. **Revisar este plano** e ajustar conforme necessário
+2. **Setup do projeto** (Fase 1)
+3. **Começar pela Fase 2** (Personagens - MVP essencial)
+4. **Iterar rapidamente** com feedback contínuo
+5. **Manter documentação atualizada**
 
 ---
 
-## 🎯 Meta Final
-
-Ao final deste plano, teremos:
-- Backend completo e funcional
-- Arquitetura DDD bem estruturada
-- Sistema de grafo integrado
-- IA conversacional com RAG
-- APIs documentadas e testadas
-- Sistema escalável e manutenível
-
-**Duração Total Estimada:** 20-25 semanas (~5-6 meses)
+**Última atualização:** 2026-01-07

@@ -32,7 +32,6 @@ Primeira plataforma que une grafo de conhecimento interativo + IA conversacional
 
 **Critérios de Aceitação:**
 - [ ] Renderizar 1000+ nós (personagens) simultaneamente
-- [ ] Performance: 60fps em navegadores modernos
 - [ ] Zoom: 0.1x até 10x sem perda de qualidade
 - [ ] Pan: navegação fluida em qualquer direção
 - [ ] Diferentes layouts: força-dirigido, hierárquico, circular, radial
@@ -126,10 +125,11 @@ Primeira plataforma que une grafo de conhecimento interativo + IA conversacional
 - Cores representam métricas (força, centralidade, conexões)
 - Gradiente visual de "importância"
 
-**6. Modo 3D** (Opcional/Futuro)
+**6. Modo 3D** (Aspiracional - Futuro)
 - Grafo em três dimensões
 - Navegação orbital com mouse/touch
 - Imersivo para exploração livre
+- **Nota:** Feature de longo prazo, não prioritária para MVP
 
 #### RF004: Busca e Navegação
 **Prioridade:** Alta | **Complexidade:** Média
@@ -422,11 +422,30 @@ Quer explorar algum confronto específico?
 
 **Algoritmo Base:**
 ```javascript
-score = (bounty/1M * 0.3) + 
-        (cargo_rank * 0.25) + 
-        (batalhas_score * 0.35) + 
-        (transitive_score * 0.1)
+// 1. Normalizar cada métrica para escala 0-100 (normalização dinâmica)
+const bounty_norm = normalize(bounty, min_bounty_db, max_bounty_db, 0, 100)
+const cargo_norm = normalize(cargo_rank, 1, max_cargo_rank, 0, 100)
+const batalhas_norm = normalize(batalhas_score, 0, max_batalhas_db, 0, 100)
+const transitive_norm = normalize(transitive_score, 0, max_transitive_db, 0, 100)
+
+// 2. Aplicar os pesos (agora cada componente contribui exatamente com sua %)
+score = (bounty_norm * 0.3) +
+        (cargo_norm * 0.25) +
+        (batalhas_norm * 0.35) +
+        (transitive_norm * 0.1)
+
+// Resultado: score entre 0-100
+
+// Função auxiliar de normalização
+function normalize(value, min, max, newMin, newMax) {
+  return ((value - min) / (max - min)) * (newMax - newMin) + newMin
+}
 ```
+
+**Nota sobre Normalização:**
+- Os valores min/max são calculados dinamicamente do banco de dados atual
+- Quando novos personagens aparecem, os scores podem ser recalculados
+- Isso garante que os scores sejam sempre relativos ao "estado atual" do universo One Piece
 
 **Transitividade:**
 ```
@@ -920,52 +939,17 @@ com as técnicas criativas da Gomu Gomu."
 - 💎 "Descobridor": Achou 10 conexões raras
 - 🌐 "Social": 50 contribuições na comunidade
 
-#### RF026: Modo Anti-Spoiler
-**Prioridade:** Alta | **Complexidade:** Média
+---
 
-**Descrição:** Permite usuários explorarem sem spoilers
+### 2.6 MÓDULO: Social e Comunidade
 
-**Configuração:**
-```
-┌────────────────────────────────────────┐
-│ 🔒 CONFIGURAÇÃO ANTI-SPOILER           │
-├────────────────────────────────────────┤
-│                                        │
-│ Onde você está na história?            │
-│                                        │
-│ 📺 Anime: [Episódio ▼] [1088 ▼]       │
-│ 📖 Mangá: [Capítulo ▼] [1095 ▼]       │
-│                                        │
-│ ou escolha por arco:                   │
-│ [Arco ▼] [País de Wano - Completo]    │
-│                                        │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-│                                        │
-│ O que será bloqueado:                  │
-│ ☑ Personagens que ainda não apareceram │
-│ ☑ Eventos futuros                      │
-│ ☑ Revelações importantes               │
-│ ☑ Frutas do diabo reveladas depois    │
-│                                        │
-│ [Salvar] [Resetar]                     │
-└────────────────────────────────────────┘
-```
-
-**Comportamento:**
-- Personagens futuros ficam "bloqueados" (blurred)
-- Hover mostra "Bloqueado - Aparece em Ep. XXX"
-- Grafo só mostra conexões até o ponto atual
-- IA evita mencionar spoilers nas respostas
-- Alertas se usuário tentar acessar conteúdo futuro
-
-**Modo Progressivo:**
-- Usuário pode "marcar como assistido" cada episódio
-- Sistema automaticamente desbloqueia conteúdo novo
-- Notificações: "3 novos personagens desbloqueados!"
+**Nota:** RF026 (Modo Anti-Spoiler) foi removido da proposta.
 
 ---
 
 ### 2.7 MÓDULO: Análises Avançadas
+
+**Nota Importante:** Os recursos deste módulo devem ser implementados de forma gradual e incremental. Começar com análises básicas e expandir conforme o sistema amadurece e a demanda dos usuários valida a necessidade de cada recurso.
 
 #### RF027: Análise de Centralidade
 **Prioridade:** Baixa | **Complexidade:** Alta
@@ -1136,15 +1120,12 @@ GET /api/battles/{characterId}
 POST /api/compare (body: {char1, char2})
 ```
 
-**Rate Limits:**
-- Free tier: 100 requests/hour
-- Basic: 1000 requests/hour
-- Pro: 10000 requests/hour
-
 **Documentação:**
 - Swagger/OpenAPI spec
 - Exemplos em múltiplas linguagens
 - SDK para JavaScript, Python
+
+**Nota:** Rate limits e modelos de monetização serão definidos futuramente
 
 #### RF032: Exportações
 **Prioridade:** Baixa | **Complexidade:** Baixa
@@ -1253,8 +1234,7 @@ POST /api/compare (body: {char1, char2})
 
 ### 3.2 Escalabilidade
 - **RNF005:** Suportar 10,000+ nós no grafo
-- **RNF006:** Suportar 1000 usuários simultâneos (inicialmente)
-- **RNF007:** Arquitetura preparada para 100k+ usuários
+- **RNF006:** Arquitetura preparada para escalar conforme demanda
 
 ### 3.3 Disponibilidade
 - **RNF008:** Uptime de 99.5%
@@ -1285,21 +1265,16 @@ POST /api/compare (body: {char1, char2})
 ## 4. STACK TECNOLÓGICA SUGERIDA
 
 ### 4.1 Frontend
-- **Framework:** React 18+ ou Vue 3+
+- **Framework:** React 18+
 - **Grafo:** D3.js ou Cytoscape.js ou Vis.js
 - **3D (opcional):** Three.js + React Three Fiber
-- **UI:** Tailwind CSS + shadcn/ui
-- **State:** Zustand ou Redux Toolkit
-- **Routing:** React Router
-- **Build:** Vite
 
 ### 4.2 Backend
-- **API:** FastAPI (Python) ou NestJS (TypeScript)
 - **Database Grafo:** Neo4j ou Amazon Neptune
 - **Database Relacional:** PostgreSQL
 - **Cache:** Redis
 - **Search:** Elasticsearch ou Typesense
-- **Storage:** AWS S3 (imagens)
+- **Storage:** AWS S3 (imagens) ou qualquer outro bucket
 
 ### 4.3 IA/ML
 - **LLM:** OpenAI GPT-4 ou Anthropic Claude
@@ -1307,47 +1282,40 @@ POST /api/compare (body: {char1, char2})
 - **Vector DB:** Pinecone ou Qdrant
 - **Orchestration:** LangChain
 
-### 4.4 Infraestrutura
-- **Hosting:** Vercel (frontend) + AWS/GCP (backend)
-- **CDN:** Cloudflare
-- **Monitoring:** Sentry + DataDog
-- **Analytics:** PostHog ou Mixpanel
-
 ---
 
 ## 5. ROADMAP SUGERIDO
 
 ### Fase 1: MVP (3-4 meses)
-- ✅ Grafo básico (principais personagens)
-- ✅ Chat com IA básica
-- ✅ Perfis de personagens
-- ✅ Busca e filtros simples
-- ✅ Perguntas de caminho
+- [ ] Grafo básico (principais personagens)
+- [ ] Chat com IA básica
+- [ ] Perfis de personagens
+- [ ] Busca e filtros simples
+- [ ] Perguntas de caminho
 
 ### Fase 2: Core Features (2-3 meses)
-- ✅ Grafo completo (1000+ personagens)
-- ✅ Sincronização chat ↔ grafo
-- ✅ Power level system
-- ✅ Timeline/filtros temporais
-- ✅ Sistema de usuários
+- [ ] Grafo completo (1000+ personagens)
+- [ ] Sincronização chat ↔ grafo
+- [ ] Power level system
+- [ ] Timeline/filtros temporais
+- [ ] Sistema de usuários
 
 ### Fase 3: Social (2 meses)
-- ✅ Modo anti-spoiler
-- ✅ Coleções e favoritos
-- ✅ Comentários
-- ✅ Gamificação
+- [ ] Coleções e favoritos
+- [ ] Comentários
+- [ ] Gamificação
 
 ### Fase 4: Advanced (3 meses)
-- ✅ Análises avançadas de grafo
-- ✅ Geradores (tripulação, batalha)
-- ✅ Comunidade e moderação
-- ✅ API pública
+- [ ] Análises avançadas de grafo
+- [ ] Geradores (tripulação, batalha)
+- [ ] Comunidade e moderação
+- [ ] API pública
 
 ### Fase 5: Polish (1-2 meses)
-- ✅ Mobile app nativo
-- ✅ Performance otimizations
-- ✅ Internacionalização
-- ✅ Modo 3D (opcional)
+- [ ] Mobile app nativo
+- [ ] Performance otimizations
+- [ ] Internacionalização
+- [ ] Modo 3D (opcional)
 
 ---
 
@@ -1357,7 +1325,6 @@ POST /api/compare (body: {char1, char2})
 - **Tempo médio de sessão:** >15 minutos
 - **Páginas por sessão:** >8
 - **Taxa de retorno:** >40% (7 dias)
-- **Daily Active Users:** 5k+ (após 6 meses)
 
 ### 6.2 Produto
 - **Personagens explorados por usuário:** >50
