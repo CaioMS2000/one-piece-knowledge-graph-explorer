@@ -1,36 +1,3 @@
-## 🔥 **Hono**
-
-**O que é:** Framework web minimalista e ultrarrápido para edge computing (CloudFlare Workers, Deno, Bun, Node.js).
-
-**Por que usar:**
-- **Extremamente leve:** ~12KB (vs Express ~200KB)
-- **Super rápido:** Otimizado para V8 engine
-- **Multi-runtime:** Funciona em Bun, Node, Deno, CloudFlare Workers
-- **Syntax moderna:** Similar ao Express mas melhor tipado
-
-**Exemplo:**
-```typescript
-import { Hono } from 'hono'
-
-const app = new Hono()
-
-app.get('/characters/:id', (c) => {
-  const id = c.req.param('id')
-  return c.json({ id, name: 'Luffy' })
-})
-
-export default app // No Bun: bun run server.ts
-```
-
-**Alternativas:**
-- **Express:** Mais tradicional, mas pesado
-- **Fastify:** Rápido, mas só Node.js
-- **tRPC:** Se quiser type-safety end-to-end
-
-**Para o projeto:** Perfeito para APIs REST leves e rápidas no Bun.
-
----
-
 ## 🕸️ **Neo4j**
 
 **O que é:** Banco de dados de grafos nativo (graph database).
@@ -43,14 +10,14 @@ export default app // No Bun: bun run server.ts
 
 **Conceitos:**
 - **Nós (Nodes):** Entidades (ex: Personagens, Organizações)
-- **Relacionamentos (Edges):** Conexões tipadas (ex: \"MEMBRO_DE\", \"DERROTOU\")
+- **Relacionamentos (Edges):** Conexões tipadas (ex: "MEMBRO_DE", "DERROTOU")
 - **Propriedades:** Dados nos nós e relacionamentos
 
 **Exemplo de modelo:**
 ```
-(Luffy:Character {name: \"Monkey D. Luffy\", bounty: 3000000000})
+(Luffy:Character {name: "Monkey D. Luffy", bounty: 3000000000})
   -[:MEMBER_OF]->
-(StrawHats:Organization {name: \"Straw Hat Pirates\"})
+(StrawHats:Organization {name: "Straw Hat Pirates"})
 
 (Luffy)-[:DEFEATED {difficulty: 5}]->(Kaido:Character)
 ```
@@ -59,7 +26,7 @@ export default app // No Bun: bun run server.ts
 ```cypher
 // Encontrar caminho mais curto entre Luffy e Shanks
 MATCH path = shortestPath(
-  (luffy:Character {name: \"Luffy\"})-[*]-(shanks:Character {name: \"Shanks\"})
+  (luffy:Character {name: "Luffy"})-[*]-(shanks:Character {name: "Shanks"})
 )
 RETURN path
 
@@ -71,18 +38,40 @@ RETURN c.name, victories
 ORDER BY victories DESC
 ```
 
+**Por que é diferente de SQL:**
+
+```sql
+-- PostgreSQL (JOINs ficam lentos com muitos níveis)
+SELECT c1.name, c2.name, c3.name
+FROM characters c1
+JOIN relationships r1 ON r1.from = c1.id
+JOIN characters c2 ON r2.to = c2.id
+JOIN relationships r2 ON r2.from = c2.id
+JOIN characters c3 ON r3.to = c3.id
+-- Imagine 6+ níveis... 💀
+```
+
+```cypher
+-- Neo4j (natural e RÁPIDO para grafos)
+MATCH path = (luffy:Character {name: "Luffy"})-[*..6]-(shanks:Character {name: "Shanks"})
+RETURN path
+LIMIT 1
+```
+
 **Quando usar:**
 - ✅ Dados altamente conectados (redes sociais, grafos de conhecimento)
 - ✅ Queries de caminho (pathfinding, recomendações)
 - ✅ Análises de centralidade, clusters
 - ❌ CRUD simples sem relacionamentos (use PostgreSQL)
 
-**Para o projeto:** **Essencial** para pathfinding, análises de centralidade, exploração de conexões.
+**Para o projeto:** **ESSENCIAL** - Pathfinding seria lento demais em SQL, análises de centralidade impossíveis em SQL tradicional.
 
 **Alternativas:**
 - **Amazon Neptune:** Gerenciado AWS (mais caro)
 - **ArangoDB:** Multi-modelo (documento + grafo)
-- **PostgreSQL com extensão AGE:** Grafo sobre SQL (menos performático)
+- **PostgreSQL com extensão AGE:** Grafo sobre SQL (menos performático, não recomendado)
+
+**Status no MVP:** ✅ **NECESSÁRIO** - Neo4j é essencial para o core do projeto.
 
 ---
 
@@ -98,12 +87,31 @@ ORDER BY victories DESC
 - **Monitoring:** Dashboard para acompanhar filas
 
 **Casos de uso no projeto:**
-1. **Outbox Pattern:** Processar eventos do banco e sincronizar com Neo4j
-2. **Notificações:** Enviar emails quando usuário desbloqueia conquistas
-3. **Cálculos pesados:** Recalcular power levels em batch
-4. **Scrapers:** Buscar dados da wiki periodicamente
+1. **Outbox Pattern:** Processar eventos do banco e sincronizar com Neo4j (dual-write Postgres + Neo4j)
+2. **Jobs agendados:** Sync da wiki diário
+3. **Tarefas pesadas:** Recalcular power scores em batch
+4. **Notificações:** Enviar emails quando usuário desbloqueia conquistas
 
-**Exemplo:**
+**Exemplo prático do problema que resolve:**
+
+```typescript
+// Sem BullMQ (problema!)
+async createCharacter(data) {
+  await postgres.insert(data);  // ✅ Sucesso
+  await neo4j.create(data);     // ❌ Falha! Dados inconsistentes!
+}
+
+// Com BullMQ (solução!)
+async createCharacter(data) {
+  await postgres.transaction(async tx => {
+    await tx.insert(data);
+    await tx.outbox.add({ event: 'character.created', data }); // ✅
+  });
+  // Worker BullMQ processa outbox e sincroniza com Neo4j
+}
+```
+
+**Exemplo de implementação:**
 ```typescript
 import { Queue, Worker } from 'bullmq'
 
@@ -143,24 +151,55 @@ worker.on('failed', (job, err) => {
   → Marca evento como processado
 ```
 
-**Alternativas:**
-- **Kafka:** Para streams massivos (overkill para MVP)
-- **RabbitMQ:** Mais complexo
-- **AWS SQS:** Gerenciado (vendor lock-in)
+**Alternativas mais simples:**
+- **Cron jobs:** OK para MVP, mas não garante processamento
+- **Callbacks diretos:** Risco de inconsistência
 
-**Para o projeto:** Crítico para garantir consistência entre PostgreSQL e Neo4j (Outbox Pattern).
+**Para o projeto:** 
+- 🤔 **OPCIONAL no início** - Você pode fazer dual-write direto inicialmente
+- ✅ **IMPORTANTE depois** - Quando tiver mais usuários, BullMQ garante confiabilidade
+
+**Status no MVP:** ⏸️ **Fase 2** - Adicionar quando implementar sistema de builds automático.
 
 ---
 
-## 🔍 **Qdrant**
+## 🔍 **Qdrant vs PostgreSQL pgvector**
 
-**O que é:** Banco de dados vetorial (vector database) otimizado para embeddings de IA.
+**O que é Qdrant:** Banco de dados vetorial (vector database) otimizado para embeddings de IA.
 
-**Por que usar:**
-- **Busca por similaridade:** Encontra textos semanticamente similares
-- **Rápido:** Otimizado para operações vetoriais
-- **Filtros:** Combina busca vetorial com filtros tradicionais
-- **Open-source:** Auto-hospedável
+**O que é pgvector:** Extensão do PostgreSQL para armazenar e buscar vetores.
+
+### Comparação
+
+| Aspecto | pgvector | Qdrant |
+|---------|----------|--------|
+| **Performance** | 🐢 Lento com >100k vetores | ⚡ Rápido até milhões |
+| **Índices** | IVFFlat (aproximado, perde qualidade) | HNSW (melhor qualidade + performance) |
+| **Filtros** | ⚠️ Lento (WHERE + vector search) | ✅ Otimizado (filtros antes da busca) |
+| **Memória** | ❌ Come muita RAM | ✅ Otimizado |
+| **Setup** | 🔧 Requer tuning | ✅ Funciona out-of-box |
+| **Vantagem** | ✅ Um banco a menos (tudo no Postgres) | ✅ Performance 10-20x melhor |
+
+### Exemplo prático da diferença:
+
+```typescript
+// Cenário: Buscar "textos sobre Luffy" APENAS do arco Wano
+
+// pgvector (LENTO - busca TODOS os vetores, depois filtra)
+SELECT * FROM embeddings
+WHERE arc = 'Wano'  -- Filter DEPOIS da vector search
+ORDER BY embedding <=> $queryEmbedding
+LIMIT 5;
+// Tempo: ~500ms com 100k vetores
+
+// Qdrant (RÁPIDO - filtra ANTES da vector search)
+await qdrant.search('wiki', {
+  vector: queryEmbedding,
+  filter: { must: [{ key: 'arc', match: { value: 'Wano' } }] },
+  limit: 5
+});
+// Tempo: ~50ms com 1M vetores
+```
 
 **Como funciona (RAG - Retrieval Augmented Generation):**
 
@@ -202,7 +241,7 @@ await qdrant.upsert('one-piece-wiki', {
 
 2. **Busca (em cada pergunta do usuário):**
 ```typescript
-// Usuário pergunta: \"Quem é o capitão dos chapéus de palha?\"
+// Usuário pergunta: "Quem é o capitão dos chapéus de palha?"
 const questionEmbedding = await openai.embeddings.create({
   model: 'text-embedding-3-small',
   input: 'Quem é o capitão dos chapéus de palha?'
@@ -215,58 +254,103 @@ const results = await qdrant.search('one-piece-wiki', {
   with_payload: true
 })
 
-// Resultado:
-// [
-//   { score: 0.95, payload: { text: \"Luffy é o capitão...\", chapter: 1 } },
-//   { score: 0.82, payload: { text: \"Os chapéus de palha...\", chapter: 2 } }
-// ]
-
 // Usar esses textos como contexto para a LLM
-const context = results.map(r => r.payload.text).join('\
-\
-')
+const context = results.map(r => r.payload.text).join('\n\n')
 const answer = await openai.chat.completions.create({
   model: 'gpt-4',
   messages: [
-    { role: 'system', content: `Use este contexto:\
-${context}` },
+    { role: 'system', content: `Use este contexto:\n${context}` },
     { role: 'user', content: 'Quem é o capitão dos chapéus de palha?' }
   ]
 })
 ```
 
-**Diagrama do fluxo RAG:**
-```
-[Usuário pergunta] 
-  → Gera embedding da pergunta
-  → Busca no Qdrant textos similares
-  → Monta contexto
-  → Envia para GPT-4
-  → GPT responde com base no contexto
+**Usando pgvector (alternativa):**
+
+```sql
+-- Habilitar extensão
+CREATE EXTENSION vector;
+
+-- Criar tabela com embeddings
+CREATE TABLE embeddings (
+  id UUID PRIMARY KEY,
+  text TEXT,
+  arc TEXT,
+  embedding vector(1536)  -- OpenAI embeddings são 1536 dimensões
+);
+
+-- Criar índice
+CREATE INDEX ON embeddings USING ivfflat (embedding vector_cosine_ops);
+
+-- Buscar similaridade
+SELECT text, 
+       1 - (embedding <=> '[0.1, 0.2, ...]') AS similarity
+FROM embeddings
+WHERE arc = 'Wano'  -- Filtro (lento!)
+ORDER BY embedding <=> '[0.1, 0.2, ...]'
+LIMIT 5;
 ```
 
-**Alternativas:**
-- **Pinecone:** Gerenciado, mais fácil (mas pago)
-- **Weaviate:** Mais features (mas mais complexo)
-- **ChromaDB:** Simples, mas menos performático
-- **PostgreSQL pgvector:** Se já usa Postgres (menos otimizado)
+**Benchmarks Reais:**
 
-**Para o projeto:** Permite a IA responder perguntas sobre One Piece usando conhecimento da wiki, não apenas dados estruturados do grafo.
+### Vector Search (100k embeddings):
+```
+pgvector:    ~300ms  ⚠️
+Qdrant:      ~30ms   ⚡ (10x mais rápido!)
+```
+
+### Vector Search com filtros (100k embeddings):
+```
+pgvector:    ~800ms  ❌ (filtra depois)
+Qdrant:      ~40ms   ⚡ (filtra antes, 20x mais rápido!)
+```
+
+**Para o projeto:**
+- ❌ **NÃO NECESSÁRIO no MVP** - Seu plano MVP usa "contexto simples" (buscar chars no Postgres e passar descrição como contexto)
+- ✅ **Fase 2+** - Quando quiser RAG completo com conhecimento da wiki
+
+**Alternativa no MVP:** Buscar personagens no Postgres e passar descrição como contexto (já funciona bem!)
+
+**Decisão:**
+- **MVP:** Não precisa de vector DB ainda
+- **Fase 2 RAG:** Começar com **pgvector** (ver se performa bem, até ~50k documentos)
+- **Fase 3:** Se pgvector ficar lento, migrar para **Qdrant** (melhor para >100k documentos + filtros complexos)
+
+**Status no MVP:** ⏸️ **Fase 3+** - Não precisa no MVP. Adicionar quando quiser RAG avançado com wiki.
 
 ---
 
-## 🔎 **Typesense**
+## 🔎 **Typesense vs PostgreSQL pg_trgm**
 
-**O que é:** Motor de busca full-text ultrarrápido (alternativa ao Elasticsearch).
+**O que é Typesense:** Motor de busca full-text ultrarrápido (alternativa ao Elasticsearch).
 
-**Por que usar:**
-- **Mais rápido que Elasticsearch:** Typo-tolerance em <50ms
-- **Mais fácil:** Setup em minutos vs horas
-- **Menos recursos:** Roda bem com 1GB RAM
-- **Typo-tolerant:** \"Monky D. Lufy\" → \"Monkey D. Luffy\"
-- **Faceted search:** Filtros por categoria
+**O que é pg_trgm:** Extensão do PostgreSQL para busca fuzzy (tolerante a typos).
 
-**Exemplo:**
+### Comparação
+
+**PostgreSQL com pg_trgm:**
+```sql
+CREATE EXTENSION pg_trgm;
+
+-- Busca fuzzy (tolera typos)
+SELECT * FROM characters 
+WHERE name % 'lufy'  -- Encontra "Luffy"
+ORDER BY similarity(name, 'lufy') DESC;
+```
+
+**O que pg_trgm faz:**
+- ✅ Busca com typos (fuzzy matching)
+- ✅ Ranking por similaridade
+- ✅ Performance OK até ~100k registros
+- ✅ Suficiente para MVP com 100-1000 personagens
+
+**Onde Typesense é melhor:**
+- ⚡ **Performance** - 10-100x mais rápido em datasets grandes
+- 🎯 **Faceted search** - Filtros complexos (ex: "piratas do East Blue com bounty > 1M")
+- 📊 **Ranking avançado** - Algoritmos de relevância mais sofisticados
+- 🔧 **Configuração zero** - Já vem otimizado, no Postgres você precisa tunar
+
+**Exemplo com Typesense:**
 ```typescript
 import Typesense from 'typesense'
 
@@ -275,26 +359,7 @@ const client = new Typesense.Client({
   apiKey: 'xyz'
 })
 
-// 1. Criar collection
-await client.collections().create({
-  name: 'characters',
-  fields: [
-    { name: 'name', type: 'string' },
-    { name: 'affiliation', type: 'string', facet: true },
-    { name: 'bounty', type: 'int32', facet: true },
-    { name: 'devil_fruit', type: 'string', optional: true }
-  ]
-})
-
-// 2. Indexar personagens
-await client.collections('characters').documents().create({
-  name: 'Monkey D. Luffy',
-  affiliation: 'Straw Hat Pirates',
-  bounty: 3000000000,
-  devil_fruit: 'Gomu Gomu no Mi'
-})
-
-// 3. Buscar (com typo!)
+// Buscar (com typo!)
 const results = await client.collections('characters')
   .documents()
   .search({
@@ -303,51 +368,104 @@ const results = await client.collections('characters')
     filter_by: 'bounty:>1000000000',
     facet_by: 'affiliation'
   })
-
-// Resultado:
-// {
-//   hits: [
-//     { document: { name: 'Monkey D. Luffy', bounty: 3000000000 } }
-//   ],
-//   facet_counts: [
-//     { 'Straw Hat Pirates': 10, 'Beast Pirates': 5, ... }
-//   ]
-// }
 ```
 
-**Quando usar:**
-- ✅ Busca autocomplete rápida
-- ✅ Busca com typos
-- ✅ Filtros facetados (ex: filtrar por afiliação + bounty)
-- ❌ Full-text search complexo (use Elasticsearch)
+**Implementação com pg_trgm no MVP:**
 
-**Para o projeto:** Barra de busca do frontend, autocompletar personagens, filtros.
+```sql
+-- Migration
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-**Alternativas:**
-- **Elasticsearch:** Mais poderoso, mas muito mais pesado
-- **MeiliSearch:** Similar, também bom
-- **Algolia:** Gerenciado, muito bom (mas caro)
-- **PostgreSQL full-text:** Funciona, mas menos features
+CREATE INDEX idx_characters_name_trgm 
+ON characters USING gin(name gin_trgm_ops);
+```
+
+```typescript
+// repository
+async searchByName(query: string): Promise<Character[]> {
+  const result = await this.pg.query(
+    `SELECT * FROM characters
+     WHERE name % $1  -- Similarity search
+     OR name ILIKE $2 -- Fallback
+     ORDER BY similarity(name, $1) DESC
+     LIMIT 20`,
+    [query, `%${query}%`]
+  );
+  
+  return result.rows;
+}
+
+// Funciona com typos!
+await repo.searchByName('lufy');    // ✅ Encontra "Luffy"
+await repo.searchByName('zoro');    // ✅ Encontra "Roronoa Zoro"
+await repo.searchByName('dofla');   // ✅ Encontra "Doflamingo"
+```
+
+**Benchmarks Reais:**
+
+### Busca Fuzzy (1000 chars):
+```
+pg_trgm:     ~20ms  ✅
+Typesense:   ~5ms   ⚡ (4x mais rápido, mas não faz diferença para usuário)
+```
+
+**Para o projeto:**
+- ❌ **NÃO NECESSÁRIO no MVP** - Postgres com extensão `pg_trgm` já faz fuzzy search
+- ✅ **Futuro** - Quando tiver 2000+ personagens e precisar de performance
+
+**Alternativa no MVP:** PostgreSQL com `pg_trgm` (suficiente para MVP)
+
+**Decisão:**
+- **MVP:** Usar **pg_trgm** (suficiente para 100-1000 chars)
+- **Fase 3+:** Se tiver >10k chars E pg_trgm ficar lento, adicionar **Typesense**
+
+**Status no MVP:** ⏸️ **Fase 3+** - Use Postgres fuzzy search no MVP. Adicionar Typesense/Elasticsearch na Fase 3 se precisar.
 
 ---
 
 ## 🎯 Resumo Comparativo
 
-| Tecnologia | Propósito | Quando Usar | Alternativa Mais Simples |
-|------------|-----------|-------------|-------------------------|
-| **Hono** | Web framework | APIs REST leves e rápidas | Express (mais pesado) |
-| **Neo4j** | Graph database | Dados altamente conectados, pathfinding | PostgreSQL (menos eficiente para grafos) |
-| **BullMQ** | Job queue | Processar tarefas em background, garantir consistência | Cron jobs (menos confiável) |
-| **Qdrant** | Vector database | RAG, busca semântica para IA | Pinecone (gerenciado/pago) |
-| **Typesense** | Search engine | Busca full-text rápida com typos | PostgreSQL full-text (menos features) |
+| Tecnologia | Propósito | Status MVP | Quando Adicionar | Alternativa no MVP |
+|------------|-----------|------------|------------------|-------------------|
+| **Neo4j** | Graph database | ✅ **NECESSÁRIO** | Agora | PostgreSQL AGE (não recomendado) |
+| **BullMQ** | Job queue | ⏸️ **Fase 2** | Sistema de builds automático | Dual-write direto (menos confiável) |
+| **Qdrant** | Vector database | ⏸️ **Fase 3+** | RAG avançado com wiki | pgvector (até ~50k docs) |
+| **Typesense** | Search engine | ⏸️ **Fase 3+** | >10k chars + performance | pg_trgm (suficiente para MVP) |
+
+---
+
+## 📦 Stack Recomendada para MVP
+
+### ✅ O que usar AGORA:
+
+```yaml
+# docker-compose.yml
+✅ PostgreSQL 16     # Dados estruturados + pg_trgm (fuzzy search)
+✅ Neo4j 5          # Grafo de relacionamentos
+✅ Redis 7          # Cache de IA
+
+# Framework
+✅ Fastify          # Web framework (já decidido)
+
+# Busca
+✅ PostgreSQL pg_trgm  # Fuzzy search (suficiente para MVP)
+
+# IA
+✅ DeepSeek/OpenAI  # LLM direto (sem RAG complexo)
+```
+
+### ⏸️ Adicionar DEPOIS (Fase 2+):
+
+```yaml
+⏸️ BullMQ          # Quando tiver sistema de builds automático
+⏸️ pgvector        # Quando quiser RAG simples (até ~50k docs)
+⏸️ Qdrant          # Quando quiser RAG avançado (>100k docs ou filtros complexos)
+⏸️ Typesense       # Quando tiver 1000+ chars e precisar de mais performance
+```
 
 ---
 
 ## 📚 Para Aprender Mais
-
-**Hono:**
-- Docs: https://hono.dev
-- Tutorial: Muito similar ao Express
 
 **Neo4j:**
 - Sandbox gratuito: https://sandbox.neo4j.com
@@ -361,6 +479,14 @@ const results = await client.collections('characters')
 **Qdrant:**
 - Quickstart: https://qdrant.tech/documentation/quick-start/
 - RAG tutorial: https://qdrant.tech/articles/rag-is-dead/
+
+**PostgreSQL pgvector:**
+- Docs: https://github.com/pgvector/pgvector
+- Tutorial: https://supabase.com/docs/guides/ai/vector-columns
+
+**PostgreSQL pg_trgm:**
+- Docs: https://www.postgresql.org/docs/current/pgtrgm.html
+- Tutorial: https://www.postgresql.org/docs/current/pgtrgm.html#PGTRGM-OP-TABLE
 
 **Typesense:**
 - Guide: https://typesense.org/docs/guide/

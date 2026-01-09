@@ -41,3 +41,25 @@ yarn-error.log*
 temp
 ddd*
 prompt.md
+
+# Docker volumes data
+postgres_data/
+neo4j_data/
+neo4j_logs/
+neo4j_import/
+neo4j_plugins/
+redis_data/
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

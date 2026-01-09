@@ -1,0 +1,95 @@
+version: '3.9'
+
+services:
+  # PostgreSQL - Dados estruturados (com suporte a pg_trgm e pgvector)
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: opkg-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: opkg
+      POSTGRES_PASSWORD: opkg_dev_password
+      POSTGRES_DB: opkg_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opkg"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - opkg-network
+
+  # Neo4j - Banco de dados de grafo
+  neo4j:
+    image: neo4j:5-community
+    container_name: opkg-neo4j
+    restart: unless-stopped
+    environment:
+      # Autenticação
+      NEO4J_AUTH: neo4j/opkg_dev_password
+
+      # Performance settings (ajuste conforme necessário)
+      NEO4J_dbms_memory_pagecache_size: 512M
+      NEO4J_dbms_memory_heap_initial__size: 512M
+      NEO4J_dbms_memory_heap_max__size: 1G
+
+      # APOC (plugins úteis para operações avançadas)
+      NEO4J_PLUGINS: '["apoc"]'
+
+      # Security settings
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+      NEO4J_dbms_security_procedures_allowlist: apoc.*
+    ports:
+      - "7474:7474"  # HTTP (Neo4j Browser)
+      - "7687:7687"  # Bolt protocol (driver connection)
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - opkg-network
+
+  # Redis - Cache e sessions
+  redis:
+    image: redis:7-alpine
+    container_name: opkg-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass opkg_dev_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - opkg-network
+
+volumes:
+  postgres_data:
+    driver: local
+  neo4j_data:
+    driver: local
+  neo4j_logs:
+    driver: local
+  neo4j_import:
+    driver: local
+  neo4j_plugins:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  opkg-network:
+    driver: bridge
