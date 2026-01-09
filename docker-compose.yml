@@ -8,10 +8,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: opkg
-      POSTGRES_PASSWORD: opkg_dev_password
-      POSTGRES_DB: opkg_dev
+      POSTGRES_PASSWORD: opkg_password
+      POSTGRES_DB: opkg
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
     environment:
       # Autenticação
-      NEO4J_AUTH: neo4j/opkg_dev_password
+      NEO4J_AUTH: neo4j/opkg_password
 
       # Performance settings (ajuste conforme necessário)
       NEO4J_dbms_memory_pagecache_size: 512M
@@ -63,7 +63,7 @@ services:
     image: redis:7-alpine
     container_name: opkg-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass opkg_dev_password
+    command: redis-server --appendonly yes --requirepass opkg_password
     ports:
       - "6379:6379"
     volumes:

@@ -10,8 +10,8 @@
   },
   "scripts": {
     "test": "bun test",
-		"test:watch": "bun test --watch",
-		"test:cov": "bun test --coverage"
+    "test:watch": "bun test --watch",
+    "test:cov": "bun test --coverage"
   },
   "publishConfig": {
     "access": "public"
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "dayjs": "^1.11.19",
-    "uuidv7": "^1.0.3"
+    "uuidv7": "^1.0.3",
+    "winston": "^3.19.0"
   }
 }

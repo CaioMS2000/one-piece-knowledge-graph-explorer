@@ -4,12 +4,36 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:cov": "bun test --coverage",
+    "dev": "bun run --watch src/infra/http/server.ts"
   },
   "dependencies": {
-    "@repo/core": "*"
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/multipart": "^9.3.0",
+    "@fastify/swagger": "^9.6.1",
+    "@fastify/swagger-ui": "^5.2.4",
+    "@repo/core": "*",
+    "@scalar/fastify-api-reference": "^1.43.1",
+    "bcryptjs": "^3.0.3",
+    "better-auth": "^1.4.10",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^5.6.2",
+    "fastify-plugin": "^5.1.0",
+    "fastify-type-provider-zod": "^6.1.0",
+    "pg": "^8.16.3",
+    "swagger-themes": "^1.4.3",
+    "zod": "4.1.13"
   },
   "devDependencies": {
-    "typescript": "5.9.2",
-    "@repo/typescript-config": "*"
+    "@repo/typescript-config": "*",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.8",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.2"
   }
 }

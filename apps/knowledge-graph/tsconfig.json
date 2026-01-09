@@ -1,12 +1,18 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "[ROOT]/*": ["./*"]
+    }
   },
   "include": [
     "**/*.ts",
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/infra/http/routes/exemple/*"
   ]
 }
