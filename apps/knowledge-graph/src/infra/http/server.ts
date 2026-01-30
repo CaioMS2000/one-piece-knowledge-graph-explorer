@@ -1,45 +1,34 @@
 import fastifyCors from '@fastify/cors'
-import type { Auth } from 'better-auth'
 import { toNodeHandler } from 'better-auth/node'
 import { FastifyListenOptions } from 'fastify'
 import { env } from '@/config/env'
 import { app } from './app'
-import { DependenciesContainer } from './dependencies-container'
 import { createLogger } from '@repo/core'
 
 const logger = createLogger('Server')
-const container = new DependenciesContainer()
-
-export let auth: Auth
 
 app.get('/health', async () => ({ status: 'ok' }))
 
 async function bootstrap() {
+	const systemConfigService = container.resolve(TOKENS.SystemConfigService)
+	const auth = container.resolve(TOKENS.Auth)
+
 	try {
-		await container.init()
+		await systemConfigService.loadAll()
 	} catch (error) {
 		app.log.error({ err: error }, 'Failed to initialize dependencies')
 		process.exit(1)
 	}
 
-	const resources = container.getResources()
-	const corsOrigins = resources.configManager.getArray<string>('cors.origins', [
+	const corsOrigins = systemConfigService.getArray<string>('cors.origins', [
 		'*',
 	])
-	const corsCredentials = resources.configManager.getBoolean(
+	const corsCredentials = systemConfigService.getBoolean(
 		'cors.credentials',
 		true
 	)
 
-	auth = resources.auth
-
-	app.decorate('resources', resources)
 	app.decorate('auth', auth)
-	app.decorateRequest('resources', {
-		getter() {
-			return resources
-		},
-	})
 	app.decorateRequest('auth', {
 		getter() {
 			return auth

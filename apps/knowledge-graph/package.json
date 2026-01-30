@@ -26,6 +26,7 @@
     "fastify-type-provider-zod": "^6.1.0",
     "pg": "^8.16.3",
     "swagger-themes": "^1.4.3",
+    "tsyringe": "^4.10.0",
     "zod": "4.1.13"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@ import { database } from '@/lib/drizzle'
 import { systemSettings } from '@/infra/database/schema'
 import { eq } from 'drizzle-orm'
 
+@singleton()
 export class SystemConfigService {
 	private cache: Map<string, unknown> = new Map()
 
