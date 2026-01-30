@@ -39,6 +39,7 @@ yarn-error.log*
 
 # locals
 temp
+temp.md
 ddd*
 prompt.md
 
