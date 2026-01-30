@@ -27,7 +27,6 @@ out/
 build
 dist
 
-
 # Debug
 npm-debug.log*
 yarn-debug.log*
@@ -36,12 +35,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
-
-# locals
-temp
-temp.md
-ddd*
-prompt.md
 
 # Docker volumes data
 postgres_data/
@@ -63,4 +56,14 @@ logs/
 .vscode/
 .idea/
 *.swp
+
+# locals
+temp
+temp.md
+ddd*
+prompt.md
 *.swo
+apps/knowledge-graph/test_outputs
+*.txt
+/**/test.ts
+!apps/knowledge-graph/src/test.ts
