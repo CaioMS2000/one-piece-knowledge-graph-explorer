@@ -71,6 +71,7 @@ async function runTests() {
 		const params = {
 			action: 'query',
 			list: 'categorymembers',
+			// cmtitle: 'Categoria:Personagens',
 			cmtitle: 'Categoria:Personagens',
 			cmlimit: 20,
 			format: 'json',
@@ -162,6 +163,90 @@ async function runTests() {
 	} catch (e) {
 		console.error('❌ Test 5 Failed')
 		await saveResult('test5_error.json', { error: String(e) })
+	}
+
+	// Test 6: Inspect Table Headers (Debug)
+	console.log('\n--- TEST 6: Inspect Table Headers (Debug) ---')
+	try {
+		const params = {
+			action: 'parse',
+			page: 'Lista_de_Personagens_Canônicos',
+			prop: 'text',
+			format: 'json',
+		}
+
+		const data = (await request(params)) as any
+
+		if (data.parse && data.parse.text && data.parse.text['*']) {
+			const html = data.parse.text['*']
+			const $ = cheerio.load(html)
+
+			const headers: string[] = []
+			$('table.wikitable th').each((index, element) => {
+				headers.push($(element).text().trim())
+			})
+
+			await saveResult('test6_table_headers.json', headers)
+			console.log(`✅ Extracted headers: ${headers.join(', ')}`)
+		}
+	} catch (e) {
+		console.error('❌ Test 6 Failed', e)
+		await saveResult('test6_error.json', { error: String(e) })
+	}
+
+	// Test 7: Fetch Raw Wikitext (Luffy Infobox)
+	console.log('\n--- TEST 7: Fetch Raw Wikitext (Luffy) ---')
+	try {
+		const params = {
+			action: 'query',
+			titles: 'Monkey D. Luffy',
+			prop: 'revisions',
+			rvprop: 'content',
+			rvslots: 'main',
+			format: 'json',
+		}
+		const data = (await request(params)) as any
+
+		if (data.query && data.query.pages) {
+			const pages = data.query.pages
+			const pageId = Object.keys(pages)[0]
+			const content = pages[pageId].revisions[0].slots.main['*']
+
+			await saveResult('test7_luffy_raw.txt', content) // Save as txt for readability
+			console.log(
+				'✅ Fetched raw wikitext for Luffy. Check test7_luffy_raw.txt for "recompensa".'
+			)
+		} else {
+			console.error('❌ Data structure unexpected for Test 7')
+		}
+	} catch (e) {
+		console.error('❌ Test 7 Failed', e)
+		await saveResult('test7_error.json', { error: String(e) })
+	}
+
+	// Test 8: Fetch Raw Wikitext (Bellamy - Comparison)
+	console.log('\n--- TEST 8: Fetch Raw Wikitext (Bellamy) ---')
+	try {
+		const params = {
+			action: 'query',
+			titles: 'Bellamy',
+			prop: 'revisions',
+			rvprop: 'content',
+			rvslots: 'main',
+			format: 'json',
+		}
+		const data = (await request(params)) as any
+		if (data.query && data.query.pages) {
+			const pages = data.query.pages
+			const pageId = Object.keys(pages)[0]
+			const content = pages[pageId].revisions[0].slots.main['*']
+
+			await saveResult('test8_bellamy_raw.txt', content)
+			console.log('✅ Fetched raw wikitext for Bellamy.')
+		}
+	} catch (e) {
+		console.error('❌ Test 8 Failed', e)
+		await saveResult('test8_error.json', { error: String(e) })
 	}
 
 	console.log('\n🏁 All tests completed.')
