@@ -249,6 +249,56 @@ async function runTests() {
 		await saveResult('test8_error.json', { error: String(e) })
 	}
 
+	// Test 9: Extract Bounty from PortableInfobox (parse + Cheerio)
+	console.log('\n--- TEST 9: Extract Bounty from PortableInfobox (Luffy) ---')
+	try {
+		const params = {
+			action: 'parse',
+			page: 'Monkey_D._Luffy',
+			prop: 'text',
+			format: 'json',
+		}
+
+		const data = (await request(params)) as any
+		const html = data.parse.text['*']
+		const $ = cheerio.load(html)
+
+		// Extrair todos os campos da PortableInfobox
+		const infoboxData: Record<string, string> = {}
+
+		$('.pi-data').each((_, el) => {
+			const label = $(el).find('.pi-data-label').text().trim()
+			const value = $(el).find('.pi-data-value').text().trim()
+			if (label && value) {
+				infoboxData[label] = value
+			}
+		})
+
+		// Buscar especificamente por recompensa/bounty
+		let bounty: string | null = null
+		for (const [label, value] of Object.entries(infoboxData)) {
+			if (
+				label.toLowerCase().includes('recompensa') ||
+				label.toLowerCase().includes('bounty')
+			) {
+				bounty = value
+				break
+			}
+		}
+
+		const obj = {
+			bounty,
+			allInfoboxFields: infoboxData,
+		}
+		await saveResult('test9_luffy_bounty.json', [obj])
+
+		console.log(`✅ Bounty extracted: ${bounty || 'Not found'}`)
+		console.log(`📋 Total infobox fields: ${Object.keys(infoboxData).length}`)
+	} catch (e) {
+		console.error('❌ Test 9 Failed', e)
+		await saveResult('test9_error.json', { error: String(e) })
+	}
+
 	console.log('\n🏁 All tests completed.')
 }
 
