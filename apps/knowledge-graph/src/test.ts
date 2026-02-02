@@ -37,6 +37,38 @@ async function request(params: Record<string, string | number>) {
 	}
 }
 
+function processInfoboxData(
+	raw: Record<string, string>
+): Record<string, string | string[]> {
+	const processed: Record<string, string | string[]> = {}
+
+	for (const [label, value] of Object.entries(raw)) {
+		// 1. Remove referências [n]
+		const cleaned = value.replace(/\[\d+\]/g, '')
+
+		// 2. Detecta valores múltiplos (números separados ou padrões com ;)
+		// Padrão para valores numéricos grandes concatenados (ex: "3.000.000.0001.500.000.000")
+		const numericPattern = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?)/g
+		const matches = cleaned.match(numericPattern)
+
+		// Se tem múltiplos números grandes (> 6 dígitos) e parece ser lista de valores
+		if (matches && matches.length > 1 && matches.some(m => m.length > 6)) {
+			processed[label] = matches
+		}
+		// Se tem ponto-e-vírgula, separa
+		else if (cleaned.includes(';')) {
+			processed[label] = cleaned
+				.split(';')
+				.map(s => s.trim())
+				.filter(Boolean)
+		} else {
+			processed[label] = cleaned.trim()
+		}
+	}
+
+	return processed
+}
+
 async function runTests() {
 	console.log('🚀 Starting Wiki API Tests...\n')
 	console.log(`📂 Output directory: ${OUTPUT_DIR}\n`)
@@ -274,26 +306,23 @@ async function runTests() {
 			}
 		})
 
-		// Buscar especificamente por recompensa/bounty
-		let bounty: string | null = null
-		for (const [label, value] of Object.entries(infoboxData)) {
-			if (
-				label.toLowerCase().includes('recompensa') ||
-				label.toLowerCase().includes('bounty')
-			) {
-				bounty = value
-				break
-			}
-		}
+		const raw = infoboxData
+		const processed = processInfoboxData(raw)
 
-		const obj = {
-			bounty,
-			allInfoboxFields: infoboxData,
-		}
-		await saveResult('test9_luffy_bounty.json', [obj])
+		await saveResult('test9_luffy_bounty.json', { raw, processed })
 
-		console.log(`✅ Bounty extracted: ${bounty || 'Not found'}`)
-		console.log(`📋 Total infobox fields: ${Object.keys(infoboxData).length}`)
+		// Encontrar bounty no processed para log
+		const bountyKey = Object.keys(processed).find(
+			k =>
+				k.toLowerCase().includes('recompensa') ||
+				k.toLowerCase().includes('bounty')
+		)
+		const bountyValue = bountyKey ? processed[bountyKey] : null
+
+		console.log(
+			`✅ Bounty extracted: ${bountyValue ? JSON.stringify(bountyValue) : 'Not found'}`
+		)
+		console.log(`📋 Total infobox fields: ${Object.keys(raw).length}`)
 	} catch (e) {
 		console.error('❌ Test 9 Failed', e)
 		await saveResult('test9_error.json', { error: String(e) })
