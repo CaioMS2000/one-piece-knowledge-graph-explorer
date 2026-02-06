@@ -37,17 +37,48 @@ async function request(params: Record<string, string | number>) {
 	}
 }
 
+function extractValues(valueEl: cheerio.Cheerio<any>): string[] {
+	const html = valueEl.html()?.trim() || ''
+
+	// Caminho 1: Se tem <br>, split por <br> (multi-valor)
+	if (/<br\s*\/?>/i.test(html)) {
+		return html
+			.split(/<br\s*\/?>/gi)
+			.map(segment => cheerio.load(segment)('body').text().trim())
+			.map(v =>
+				v
+					.replace(/\[\d+\]/g, '')
+					.replace(/;\s*$/, '')
+					.trim()
+			)
+			.filter(Boolean)
+	}
+
+	// Caminho 2: Sem <br>, extrair texto completo (valor único ou separado por ;)
+	return [
+		valueEl
+			.text()
+			.trim()
+			.replace(/\[\d+\]/g, ''),
+	]
+}
+
 function processInfoboxData(
-	raw: Record<string, string>
+	raw: Record<string, string | string[]>
 ): Record<string, string | string[]> {
 	const processed: Record<string, string | string[]> = {}
 
 	for (const [label, value] of Object.entries(raw)) {
+		// Se já é array (separado por <br>), manter como está
+		if (Array.isArray(value)) {
+			processed[label] = value
+			continue
+		}
+
 		// 1. Remove referências [n]
 		const cleaned = value.replace(/\[\d+\]/g, '')
 
 		// 2. Detecta valores múltiplos (números separados ou padrões com ;)
-		// Padrão para valores numéricos grandes concatenados (ex: "3.000.000.0001.500.000.000")
 		const numericPattern = /(\d{1,3}(?:\.\d{3})*(?:,\d+)?)/g
 		const matches = cleaned.match(numericPattern)
 
@@ -296,33 +327,39 @@ async function runTests() {
 		const $ = cheerio.load(html)
 
 		// Extrair todos os campos da PortableInfobox
-		const infoboxData: Record<string, string> = {}
+		const infoboxData: Record<string, string | string[]> = {}
+		const infoboxHtml: Record<string, string> = {}
 
 		$('.pi-data').each((_, el) => {
 			const label = $(el).find('.pi-data-label').text().trim()
-			const value = $(el).find('.pi-data-value').text().trim()
-			if (label && value) {
-				infoboxData[label] = value
+			const valueEl = $(el).find('.pi-data-value')
+			if (label) {
+				const values = extractValues(valueEl)
+				infoboxData[label] = values.length > 1 ? values : values[0]
+				infoboxHtml[label] = valueEl.html() || ''
 			}
 		})
 
-		const raw = infoboxData
-		const processed = processInfoboxData(raw)
+		const processed = processInfoboxData(infoboxData)
 
-		await saveResult('test9_luffy_bounty.json', { raw, processed })
+		await saveResult('test9_luffy_bounty.json', {
+			extracted: infoboxData,
+			processed,
+			html: infoboxHtml,
+		})
 
-		// Encontrar bounty no processed para log
-		const bountyKey = Object.keys(processed).find(
+		// Encontrar bounty para log
+		const bountyKey = Object.keys(infoboxData).find(
 			k =>
 				k.toLowerCase().includes('recompensa') ||
 				k.toLowerCase().includes('bounty')
 		)
-		const bountyValue = bountyKey ? processed[bountyKey] : null
+		const bountyValue = bountyKey ? infoboxData[bountyKey] : null
 
 		console.log(
 			`✅ Bounty extracted: ${bountyValue ? JSON.stringify(bountyValue) : 'Not found'}`
 		)
-		console.log(`📋 Total infobox fields: ${Object.keys(raw).length}`)
+		console.log(`📋 Total infobox fields: ${Object.keys(infoboxData).length}`)
 	} catch (e) {
 		console.error('❌ Test 9 Failed', e)
 		await saveResult('test9_error.json', { error: String(e) })
