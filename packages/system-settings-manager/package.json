@@ -1,0 +1,22 @@
+{
+  "name": "@repo/system-settings-manager",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@repo/core": "*",
+    "@repo/typescript-config": "*",
+    "dotenv": "^17.2.4",
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.18.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.8",
+    "tsx": "^4.21.0"
+  }
+}
