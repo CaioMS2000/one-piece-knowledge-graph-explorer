@@ -1,5 +1,5 @@
 import type { Auth } from 'better-auth'
-import { SystemConfigService } from './system-config-service'
+import { SystemConfigService } from '@repo/system-settings-manager'
 // import type { PgBoss } from 'pg-boss'
 // import type { ConfigManager, ConfigRepository } from './config-manager'
 // import type { MessageReceiver } from './messaging/receiver/message-receiver'

@@ -16,6 +16,7 @@
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.4",
     "@repo/core": "*",
+    "@repo/system-settings-manager": "*",
     "@scalar/fastify-api-reference": "^1.43.1",
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.4.10",
