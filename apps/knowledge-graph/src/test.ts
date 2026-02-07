@@ -7,7 +7,10 @@ const OUTPUT_DIR = path.join(process.cwd(), 'apps/knowledge-graph/test_outputs')
 async function saveResult(filename: string, data: any) {
 	try {
 		const filePath = path.join(OUTPUT_DIR, filename)
-		await fs.writeFile(filePath, JSON.stringify(data, null, 2))
+		const content = filename.endsWith('.txt')
+			? String(data)
+			: JSON.stringify(data, null, 2)
+		await fs.writeFile(filePath, content)
 		console.log(`💾 Saved: ${filename}`)
 	} catch (error) {
 		console.error(`❌ Error saving ${filename}:`, error)

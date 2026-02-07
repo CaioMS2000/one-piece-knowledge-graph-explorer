@@ -67,3 +67,4 @@ apps/knowledge-graph/test_outputs
 *.txt
 /**/test.ts
 !apps/knowledge-graph/src/test.ts
+*.sh
