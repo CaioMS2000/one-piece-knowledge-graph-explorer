@@ -326,40 +326,87 @@ async function runTests() {
 		const html = data.parse.text['*']
 		const $ = cheerio.load(html)
 
-		// Extrair todos os campos da PortableInfobox
-		const infoboxData: Record<string, string | string[]> = {}
+		// Extrair campos da PortableInfobox agrupados por seção
+		interface InfoboxSection {
+			section: string
+			fields: Record<string, string | string[]>
+		}
+
+		const sections: InfoboxSection[] = []
 		const infoboxHtml: Record<string, string> = {}
 
-		$('.pi-data').each((_, el) => {
+		// Iterar por grupos da infobox
+		$('.pi-group').each((_, group) => {
+			const header =
+				$(group).find('.pi-header').first().text().trim() || 'Geral'
+			const fields: Record<string, string | string[]> = {}
+
+			$(group)
+				.find('.pi-data')
+				.each((_, el) => {
+					const label = $(el).find('.pi-data-label').text().trim()
+					const valueEl = $(el).find('.pi-data-value')
+					if (label) {
+						const values = extractValues(valueEl)
+						fields[label] = values.length > 1 ? values : values[0]
+						infoboxHtml[`${header} > ${label}`] = valueEl.html() || ''
+					}
+				})
+
+			if (Object.keys(fields).length > 0) {
+				sections.push({ section: header, fields })
+			}
+		})
+
+		// Capturar .pi-data fora de qualquer .pi-group (campos soltos no root da infobox)
+		$('.portable-infobox > .pi-data').each((_, el) => {
 			const label = $(el).find('.pi-data-label').text().trim()
 			const valueEl = $(el).find('.pi-data-value')
 			if (label) {
 				const values = extractValues(valueEl)
-				infoboxData[label] = values.length > 1 ? values : values[0]
-				infoboxHtml[label] = valueEl.html() || ''
+				// Adicionar à primeira seção ou criar uma "Geral"
+				if (sections.length === 0) {
+					sections.push({ section: 'Geral', fields: {} })
+				}
+				sections[0].fields[label] = values.length > 1 ? values : values[0]
+				infoboxHtml[`Geral > ${label}`] = valueEl.html() || ''
 			}
 		})
 
-		const processed = processInfoboxData(infoboxData)
+		const extracted = sections
+		const processed = sections.map(s => ({
+			section: s.section,
+			fields: processInfoboxData(s.fields),
+		}))
 
 		await saveResult('test9_luffy_bounty.json', {
-			extracted: infoboxData,
+			extracted,
 			processed,
 			html: infoboxHtml,
 		})
 
-		// Encontrar bounty para log
-		const bountyKey = Object.keys(infoboxData).find(
-			k =>
-				k.toLowerCase().includes('recompensa') ||
-				k.toLowerCase().includes('bounty')
-		)
-		const bountyValue = bountyKey ? infoboxData[bountyKey] : null
+		// Encontrar bounty para log (buscar em todas as seções)
+		let bountyValue: string | string[] | null = null
+		for (const s of extracted) {
+			const key = Object.keys(s.fields).find(
+				k =>
+					k.toLowerCase().includes('recompensa') ||
+					k.toLowerCase().includes('bounty')
+			)
+			if (key) {
+				bountyValue = s.fields[key]
+				break
+			}
+		}
 
+		const totalFields = extracted.reduce(
+			(sum, s) => sum + Object.keys(s.fields).length,
+			0
+		)
 		console.log(
 			`✅ Bounty extracted: ${bountyValue ? JSON.stringify(bountyValue) : 'Not found'}`
 		)
-		console.log(`📋 Total infobox fields: ${Object.keys(infoboxData).length}`)
+		console.log(`📋 ${extracted.length} sections, ${totalFields} total fields`)
 	} catch (e) {
 		console.error('❌ Test 9 Failed', e)
 		await saveResult('test9_error.json', { error: String(e) })
