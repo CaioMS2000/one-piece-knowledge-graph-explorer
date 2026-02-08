@@ -13,9 +13,6 @@ export const envSchema = z.object({
 		.default('development'),
 	DATABASE_URL: z.string(),
 	PORT: z.coerce.number().catch(8000),
-
-	// HTTP
-	HTTP_COOKIE_NAME: z.string(),
 })
 
 const env = envSchema.parse(process.env)
